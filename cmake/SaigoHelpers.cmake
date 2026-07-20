@@ -1,3 +1,29 @@
+macro(FindTool SLUG FILE NAME ENABLEMENT)
+	set("DEFAULT_${SLUG}" "${ENABLEMENT}")
+
+	find_program(PATH_${SLUG} NAMES "${FILE}")
+
+	if (NOT PATH_${SLUG})
+		set("DEFAULT_${SLUG}" OFF)
+	endif()
+
+	option("USE_${SLUG}" "Enable ${NAME} when possible." "${DEFAULT_${SLUG}}")
+
+	if (PATH_${SLUG})
+		if (USE_${SLUG})
+			message(STATUS "${NAME} available and used")
+		else()
+			message(STATUS "${NAME} available but not used")
+		endif()
+	else()
+		message(STATUS "${NAME} not available")
+	endif()
+endmacro()
+
+macro(ListToString NAME)
+	list(JOIN ${NAME} " " ${NAME}_STRING)
+endmacro()
+
 macro(AddGitProject NAME DIR URL TAG)
 	string(TOUPPER "${NAME}" SLUG)
 	string(REPLACE "-" "_" SLUG "${SLUG}")
@@ -292,3 +318,106 @@ function(DeleteUselessFiles targetName filePaths)
 
 	add_dependencies(${targetName} ${deletesName})
 endfunction()
+
+macro(AddCompilerFlags NAME LANGS)
+	foreach(LANG IN ITEMS ${LANGS})
+		foreach(FLAG IN ITEMS ${ARGN})
+			string(TOUPPER "FLAG_${FLAG}" FLAG_SLUG)
+			string(REGEX REPLACE "[^A-Z0-9]" "_" FLAG_SLUG "${FLAG_SLUG}")
+			string(REGEX REPLACE "_+" "_" FLAG_SLUG "${FLAG_SLUG}")
+
+			if ("${${FLAG_SLUG}}" STREQUAL "")
+				check_compiler_flag("${LANG}" "${FLAG}" ${FLAG_SLUG})
+			endif()
+
+			if (${FLAG_SLUG})
+				list(APPEND ${NAME}_${LANG}_FLAGS "${FLAG}")
+			endif()
+		endforeach()
+	endforeach()
+endmacro()
+
+macro(AddCompilerDefinitions NAME)
+	foreach(FLAG IN ITEMS ${ARGN})
+		list(APPEND ${NAME}_DEFINITIONS ${FLAG})
+	endforeach()
+endmacro()
+
+macro(AddConfigureEnv NAME)
+	foreach(VAR IN ITEMS ${ARGN})
+		list(APPEND ${NAME}_ENV "${VAR}")
+	endforeach()
+endmacro()
+
+macro(AddToolConfigureEnv NAME VALUE)
+	AddConfigureEnv("CONFIGURE" "${NAME}=${VALUE}")
+endmacro()
+
+macro(AddTripleToolConfigureEnv NAME PATH)
+	find_program(PATH_TRIPLE_${NAME} NAMES "${TRIPLE_HOST}-${PATH}")
+
+	if (PATH_TRIPLE_${NAME})
+		set(TRIPLE_${NAME} "${PATH_TRIPLE_${NAME}}")
+	else()
+		set(TRIPLE_${NAME} "${PATH}")
+	endif()
+
+	AddToolConfigureEnv("${NAME}" "${TRIPLE_${NAME}}")
+endmacro()
+
+macro(EnableConfigureLTO NAME)
+	if (USE_LTO)
+		list(APPEND ${NAME}_C_FLAGS ${LTO_FLAGS})
+
+		if (YOKAI_C_COMPILER_MINGW)
+			AddCompilerDefinitions("${NAME}" "-Dffs=__builtin_ffs")
+		endif()
+
+		list(APPEND ${NAME}_EXE_LINKER_FLAGS ${${NAME}_CFLAGS})
+	endif()
+endmacro()
+
+macro(AddCompilerConfigureEnv NAME LANGS)
+	ListToString("${NAME}_DEFINITIONS")
+
+	foreach(LANG IN ITEMS ${LANGS})
+		list(APPEND ${NAME}_${LANG}_FLAGS ${MOLD_COMPILER_FLAGS} ${${NAME}_DEFINITIONS})
+
+		ListToString("${NAME}_${LANG}_FLAGS")
+
+		AddConfigureEnv("${NAME}" "CFLAGS=${${NAME}_${LANG}_FLAGS_STRING}")
+	endforeach()
+
+	list(APPEND ${NAME}_EXE_LINKER_FLAGS ${MOLD_EXE_LINKER_FLAGS})
+
+	ListToString("${NAME}_EXE_LINKER_FLAGS")
+
+	AddConfigureEnv("${NAME}" "LDFLAGS=${${NAME}_EXE_LINKER_FLAGS_STRING}")
+endmacro()
+
+macro(AddTargetConfigureArgs NAME)
+	list(APPEND ${NAME}_ARGS
+			"--target=${TRIPLE_TARGET}"
+			"--enable-targets=${CONFIGURE_TRIPLE_TARGETS}"
+	)
+endmacro()
+
+macro(AddCompilerCmakeArgs NAME LANGS)
+	foreach(LANG IN ITEMS ${LANGS})
+		list(APPEND ${NAME}_${LANG}_FLAGS ${EP_${LANG}_FLAGS} ${MOLD_COMPILER_FLAGS})
+
+		ListToString(${NAME}_${LANG}_FLAGS)
+
+		list(APPEND ${NAME}_ARGS 
+			"-DCMAKE_${LANG}_COMPILER_LAUNCHER=${EP_COMPILER_LAUNCHER}"
+			"-DCMAKE_${LANG}_COMPILER=${EP_${LANG}_COMPILER}"
+			"-DCMAKE_${LANG}_FLAGS=${${NAME}_${LANG}_FLAGS_STRING}"
+		)
+	endforeach()
+
+	list(APPEND ${NAME}_EXE_LINKER_FLAGS ${EP_EXE_LINKER_FLAGS} ${MOLD_EXE_LINKER_FLAGS})
+
+	ListToString(${NAME}_EXE_LINKER_FLAGS)
+
+	list(APPEND ${NAME}_ARGS "-DCMAKE_EXE_LINKER_FLAGS=${${NAME}_EXE_LINKER_FLAGS_STRING}")
+endmacro()

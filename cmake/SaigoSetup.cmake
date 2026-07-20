@@ -27,6 +27,7 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 	enable_language(C)
 	enable_language(CXX)
 
+	include(CheckCompilerFlag)
 	include(CheckLinkerFlag)
 
 	include(Yokai/Detection)
@@ -46,7 +47,9 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
 
-	set(TRIPLE_TARGET x86_64-nacl)
+	set(TRIPLE_TARGET "x86_64-nacl")
+
+	set(CONFIGURE_TRIPLE_TARGETS "x86_64-nacl,i686-nacl,arm-nacl")
 
 	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 		set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/install" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
@@ -56,30 +59,9 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "${CMAKE_BUILD_TYPE_HELP}" FORCE)
 	set(CONFIGURE_COMPILER_FLAGS "-O3")
 
-	macro(FindTool SLUG FILE NAME ENABLEMENT)
-		set("DEFAULT_${SLUG}" "${ENABLEMENT}")
-
-		find_program(PATH_${SLUG} NAMES "${FILE}")
-
-		if (NOT PATH_${SLUG})
-			set("DEFAULT_${SLUG}" OFF)
-		endif()
-
-		option("USE_${SLUG}" "Enable ${NAME} when possible." "${DEFAULT_${SLUG}}")
-
-		if (PATH_${SLUG})
-			if (USE_${SLUG})
-				message(STATUS "${NAME} available and used")
-			else()
-				message(STATUS "${NAME} available but not used")
-			endif()
-		else()
-			message(STATUS "${NAME} not available")
-		endif()
-	endmacro()
-
-	# Mold doesn't work properly on FreeBSD.
-	if (YOKAI_HOST_SYSTEM_FREEBSD)
+	# Mold doesn't work properly with Clang:
+	#   mold: fatal: -auxiliary may not be used without -shared
+	if (YOKAI_CXX_COMPILER_CLANG_COMPATIBILITY)
 		set(DEFAULT_MOLD OFF)
 	else()
 		set(DEFAULT_MOLD ON)
@@ -114,17 +96,22 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 
 	if (USE_MOLD)
 		set(MOLD_FLAG "-fuse-ld=mold")
+
 		check_linker_flag("C" "LINKER:${MOLD_FLAG}" FUSE_LD_MOLD)
 
 		if (FUSE_LD_MOLD)
-			set(COMPILER_FLAGS "${COMPILER_FLAGS} -Wl,${MOLD_FLAG}")
-			set(EXE_LINKER_FLAGS "${EXE_LINKER_FLAGS} ${MOLD_FLAG}")
+			list(APPEND MOLD_COMPILER_FLAGS "-Wl,${MOLD_FLAG}")
+			list(APPEND MOLD_EXE_LINKER_FLAGS "${MOLD_FLAG}")
+
+			# Avoids:
+			# warning: -Wl,-fuse-ld=mold: 'linker' input unused [-Wunused-command-line-argument]
+			list(APPEND MOLD_COMPILER_FLAGS "-Wno-unused-command-line-argument")
 		endif()
 	endif()
 
 	if (YOKAI_TARGET_SYSTEM_MACOS)
-		if (NOT CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
-			set(COMPILER_FLAGS "${COMPILER_FLAGS} -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+		if (NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+			list(APPEND COMPILER_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 		endif()
 	endif()
 
@@ -143,22 +130,43 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 			set(FLTO_VALUE "auto")
 		endif()
 
-		set(LTO_FLAGS "-flto=${FLTO_VALUE} -fno-fat-lto-objects")
+		list(APPEND LTO_FLAGS "-flto=${FLTO_VALUE}" "-fno-fat-lto-objects")
 
 		# FreeBSD and macOS clang don't support -fno-fat-lto-objects.
-		string(APPEND LTO_FLAGS " -Wno-ignored-optimization-argument")
+		list(APPEND LTO_FLAGS "-Wno-ignored-optimization-argument")
 
-		set(EXE_LINKER_FLAGS "${EXE_LINKER_FLAGS} ${COMPILER_FLAGS}")
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_C_FLAGS}")
+		foreach(flag IN ITEMS ${CMAKE_C_FLAGS})
+			list(APPEND EXE_LINKER_FLAGS ${flag})
+		endforeach()
+
+		list(APPEND EXE_LINKER_FLAGS ${COMPILER_FLAGS})
 	endif()
 
 	if (YOKAI_CXX_COMPILER_MINGW)
-		string(APPEND EXE_LINKER_FLAGS " -static -static-libstdc++ -static-libgcc")
+		list(APPEND EXE_LINKER_FLAGS "-static" "-static-libstdc++" "-static-libgcc")
 	endif()
 
-	set(EP_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
-	set(EP_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
-	set(EP_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXE_LINKER_FLAGS}")
+	foreach(flag IN ITEMS ${CMAKE_C_FLAGS})
+		list(APPEND EP_C_FLAGS "${flag}")
+	endforeach()
+
+	foreach(flag IN ITEMS ${CMAKE_CXX_FLAGS})
+		list(APPEND EP_CXX_FLAGS "${flag}")
+	endforeach()
+
+	foreach(flag IN ITEMS ${CMAKE_EXE_LINKER_FLAGS})
+		list(APPEND EP_EXE_LINKER_FLAGS "${flag}")
+	endforeach()
+
+	list(APPEND EP_C_FLAGS ${COMPILER_FLAGS})
+	list(APPEND EP_CXX_FLAGS ${COMPILER_FLAGS})
+	list(APPEND EP_EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS})
+
+	list(APPEND EP_CMAKE_ARGS
+		"-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+		"-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
+		"-DCMAKE_INSTALL_RPATH=${INSTALL_RPATH}"
+	)
 
 	if (CMAKE_OSX_DEPLOYMENT_TARGET)
 		list(APPEND EP_CMAKE_ARGS "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
@@ -175,10 +183,40 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 	set(EP_C_COMPILER "${CMAKE_C_COMPILER}")
 	set(EP_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
 
-	macro(addConfigureEnv NAME VALUE)
-		list(APPEND CONFIGURE_ENV "${NAME}=${VALUE}")
-	endmacro()
+	if (NOT "${EP_COMPILER_LAUNCHER}" STREQUAL "")
+		AddToolConfigureEnv("CC_FOR_BUILD" "${EP_COMPILER_LAUNCHER} cc")
+		AddToolConfigureEnv("CC" "${EP_COMPILER_LAUNCHER} ${EP_C_COMPILER}")
+		AddToolConfigureEnv("CXX" "${EP_COMPILER_LAUNCHER} ${EP_CXX_COMPILER}")
+	else()
+		AddToolConfigureEnv("CC_FOR_BUILD" "cc")
+		AddToolConfigureEnv("CC" "${EP_C_COMPILER}")
+		AddToolConfigureEnv("CXX" "${EP_CXX_COMPILER}")
+	endif()
 
-	addConfigureEnv("CC" "${EP_COMPILER_LAUNCHER} ${EP_C_COMPILER}")
-	addConfigureEnv("CXX" "${EP_COMPILER_LAUNCHER} ${EP_CXX_COMPILER}")
+	AddTripleToolConfigureEnv("AR" "ar")
+	AddTripleToolConfigureEnv("NM" "nm")
+	AddTripleToolConfigureEnv("OBJDUMP" "objdump")
+	AddTripleToolConfigureEnv("RANLIB" "ranlib")
+	AddTripleToolConfigureEnv("STRIP" "strip")
+
+	AddToolConfigureEnv("STRIPPROG" "${TRIPLE_STRIP}")
+	AddToolConfigureEnv("MAKEINFO" "true")
+
+	ListToString("EP_C_FLAGS")
+	ListToString("EP_CXX_FLAGS")
+	ListToString("EP_EXE_LINKER_FLAGS")
+	ListToString("LTO_FLAGS")
+
+	list(APPEND CONFIGURE_ARGS
+		"--build=${TRIPLE_BUILD}"
+		"--host=${TRIPLE_HOST}"
+		--prefix=
+		--disable-werror
+		--disable-nls
+		--disable-doc
+		--disable-testsuite
+		--disable-maintainer-mode
+		--disable-silent-rules
+		--enable-deterministic-archives
+	)
 endif()

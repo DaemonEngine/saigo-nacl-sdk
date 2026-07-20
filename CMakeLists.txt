@@ -26,10 +26,10 @@ project(SaigoNativeClientToolchain LANGUAGES NONE)
 
 include(ExternalProject)
 
-include(SaigoSetup)
 include(SaigoHelpers)
+include(SaigoSetup)
 
-# Some generated files (libraries) will get this strings,
+# Some generated files will have this string in their name,
 # we don't control it, but we need to know it before hand.
 set(SAIGO_CLANG_VERSION "21")
 
@@ -74,23 +74,17 @@ if (BUILD_CLANG)
 
 	set(ENV{CCACHE_PREFIX} "${PATH_ICECC}")
 
+	AddCompilerCmakeArgs(CLANG "C;CXX")
+
+	list(APPEND CLANG_ARGS ${EP_CMAKE_ARGS})
+
 	ExternalProject_Add(clang-binaries
 		${EP_OPTIONS_CLANG}
 		SOURCE_SUBDIR llvm
 		LIST_SEPARATOR "|"
 		CMAKE_GENERATOR "${EP_GENERATOR}"
 		CMAKE_ARGS
-			"${EP_CMAKE_ARGS}"
-			"-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-			"-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
-			"-DCMAKE_INSTALL_RPATH=${INSTALL_RPATH}"
-			"-DCMAKE_C_COMPILER_LAUNCHER=${EP_COMPILER_LAUNCHER}"
-			"-DCMAKE_C_COMPILER=${EP_C_COMPILER}"
-			"-DCMAKE_C_FLAGS=${EP_C_FLAGS}"
-			"-DCMAKE_CXX_COMPILER_LAUNCHER=${EP_COMPILER_LAUNCHER}"
-			"-DCMAKE_CXX_COMPILER=${EP_CXX_COMPILER}"
-			"-DCMAKE_CXX_FLAGS=${EP_CXX_FLAGS}"
-			"-DCMAKE_EXE_LINKER_FLAGS=${EP_EXE_LINKER_FLAGS}"
+			${CLANG_ARGS}
 
 			"-DLLVM_TARGETS_TO_BUILD=X86|ARM"
 			"-DLLVM_DEFAULT_TARGET_TRIPLE=${TRIPLE_TARGET}"
@@ -290,76 +284,45 @@ if (BUILD_CLANG)
 	DeleteUselessFiles(clang "${clangUselessFiles}")
 endif()
 
-macro(addBinutilsEnv NAME PATH)
-	set(TRIPLE_${NAME} "${TRIPLE_HOST}-${PATH}")
-
-	find_program(PATH_TRIPLE_${NAME} NAMES "${TRIPLE_${NAME}}")
-
-	if (PATH_TRIPLE_${NAME})
-		set(BINUTILS_${NAME} "${TRIPLE_${NAME}}")
-	else ()
-		set(BINUTILS_${NAME} "${PATH}")
-		addConfigureEnv("${NAME}" "${PATH}")
-	endif()
-endmacro()
-
-addBinutilsEnv("AR" "ar")
-addBinutilsEnv("NM" "nm")
-addBinutilsEnv("OBJDUMP" "objdump")
-addBinutilsEnv("RANLIB" "ranlib")
-addBinutilsEnv("STRIP" "strip")
-
 if (BUILD_BINUTILS)
-	set(BINUTILS_C_FLAGS "-Wno-absolute-value -Wno-unused-function -Wno-unused-const-variable -Wno-unneeded-internal-declaration -Wno-unused-private-field -Wno-format-security")
-	set(BINUTILS_EXE_LINKER_FLAGS)
+	list(APPEND BINUTILS_C_FLAGS ${EP_C_FLAGS})
+	list(APPEND BINUTILS_EXE_LINKER_FLAGS ${EP_EXE_LINKER_FLAGS})
 
-	if (USE_LTO)
-		string(APPEND BINUTILS_C_FLAGS " ${LTO_FLAGS}")
-
-		if (MINGW)
-			string(APPEND BINUTILS_C_FLAGS " -Dffs=__builtin_ffs")
-		endif()
-
-		string(APPEND BINUTILS_EXE_LINKER_FLAGS " ${BINUTILS_CFLAGS}")
-	endif()
-
-	list(APPEND BINUTILS_ENV
-		"CFLAGS=${EP_C_FLAGS} ${BINUTILS_C_FLAGS}"
-		"LDFLAGS=${EP_EXE_LINKER_FLAGS} ${BINUTILS_EXE_LINKER_FLAGS}"
-		"CC_FOR_BUILD=cc"
-		"MAKEINFO=true"
-		"STRIPPROG=${BINUTILS_STRIP}"
+	AddCompilerFlags("BINUTILS" "C"
+		"-Wno-error=absolute-value"
+		"-Wno-error=format-security"
+		"-Wno-error=unneeded-internal-declaration"
+		"-Wno-error=unused-const-variable"
+		"-Wno-error=unused-function"
+		"-Wno-error=unused-private-field"
 	)
+
+	EnableConfigureLTO("BINUTILS")
+
+	ListToString("BINUTILS_C_FLAGS")
+	ListToString("BINUTILS_EXE_LINKER_FLAGS")
+
+	AddCompilerConfigureEnv("BINUTILS" "C")
+
+	list(APPEND BINUTILS_ENV ${CONFIGURE_ENV} ${BUILD_ENV})
+
+	AddTargetConfigureArgs("BINUTILS")
+
+	list(APPEND BINUTILS_ARGS ${CONFIGURE_ARGS})
 
 	ExternalProject_Add(binutils-binaries
 		${EP_OPTIONS_BINUTILS}
 		CONFIGURE_COMMAND
 			"${SOURCE_DIR_BINUTILS}/configure"
-				${CONFIGURE_ENV}
-				${BUILD_ENV}
 				${BINUTILS_ENV}
-				"--build=${TRIPLE_BUILD}"
-				"--host=${TRIPLE_HOST}"
-				"--target=${TRIPLE_TARGET}"
-				"--enable-targets=x86_64-nacl,i686-nacl,arm-nacl"
-				--prefix=
-				--disable-gold
-				--disable-werror
-				--disable-nls
-				--disable-maintainer-mode
-				--disable-doc
-				--without-man
-				--without-info
-				--without-zlib
-				--disable-silent-rules
+				${BINUTILS_ARGS}
 				--disable-gdb
+				--disable-gold
 				--disable-plugins
 				--disable-sim
-				--disable-testsuite
-				--enable-deterministic-archives
+				--without-zlib
 		BUILD_COMMAND
 			$(MAKE)
-				${BUILD_ENV}
 				${BINUTILS_ENV}
 		INSTALL_COMMAND
 			$(MAKE)
