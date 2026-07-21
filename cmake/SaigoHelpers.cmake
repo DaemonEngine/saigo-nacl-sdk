@@ -159,10 +159,12 @@ macro(AddTarProject PARENT_NAME NAME SUBDIR URL)
 			CONFIGURE_COMMAND echo
 			BUILD_COMMAND echo
 			INSTALL_COMMAND
-				mkdir -p "${CMAKE_INSTALL_PREFIX}/${SUBDIR_${TARGET_SLUG}}"
-				&& rsync -av
-					"${SOURCE_DIR_${TARGET_SLUG}}/."
-					"${CMAKE_INSTALL_PREFIX}/${SUBDIR_${TARGET_SLUG}}/."
+				${CMAKE_COMMAND} -E make_directory
+					"${CMAKE_INSTALL_PREFIX}/${SUBDIR_${TARGET_SLUG}}"
+			COMMAND
+				${CMAKE_COMMAND} -E copy_directory
+					"${SOURCE_DIR_${TARGET_SLUG}}"
+					"${CMAKE_INSTALL_PREFIX}/${SUBDIR_${TARGET_SLUG}}"
 			DOWNLOAD_EXTRACT_TIMESTAMP ON
 		)
 
@@ -183,8 +185,11 @@ function(RenameBinaryAliases targetName toolNames)
 	add_custom_target(${referenceName}
 		ALL
 		COMMAND
-			rm -f "${referencePath}"
-			&& cp -P "${targetPath}" "${referencePath}"
+			${CMAKE_COMMAND} -E remove
+				"${referencePath}"
+		COMMAND
+			${CMAKE_COMMAND} -E copy
+				"${targetPath}" "${referencePath}"
 		DEPENDS ${targetName}-binaries
 	)
 
@@ -198,8 +203,11 @@ function(RenameBinaryAliases targetName toolNames)
 		add_custom_target(${aliasName}
 			ALL
 			COMMAND
-				rm -f "${aliasPath}"
-				&& cp -P "${referencePath}" "${aliasPath}"
+				${CMAKE_COMMAND} -E remove
+					"${aliasPath}"
+			COMMAND
+				${CMAKE_COMMAND} -E copy
+					"${referencePath}" "${aliasPath}"
 			DEPENDS ${referenceName}
 		)
 
@@ -223,8 +231,11 @@ function(AddBinaryAliases targetName toolNames)
 			add_custom_target(${aliasName}
 				ALL
 				COMMAND
-					rm -f "${aliasPath}"
-					&& ln -s "${referenceName}" "${aliasPath}"
+					${CMAKE_COMMAND} -E remove
+						"${aliasPath}"
+				COMMAND
+					${CMAKE_COMMAND} -E create_symlink
+						"${referenceName}" "${aliasPath}"
 				DEPENDS ${targetName}-binaries
 			)
 
@@ -248,7 +259,9 @@ function(AddDirectoryAliases targetName toolNames)
 
 		add_custom_target(${aliasName}-directory
 			ALL
-			COMMAND mkdir -p "${aliasPath}"
+			COMMAND 
+				${CMAKE_COMMAND} -E make_directory
+					"${aliasPath}"
 			DEPENDS ${targetName}-binaries
 		)
 
@@ -257,8 +270,11 @@ function(AddDirectoryAliases targetName toolNames)
 		add_custom_target(${aliasName}-bin-directory
 			ALL
 			COMMAND
-				rm -Rf "${aliasPath}/bin"
-				&& ln -s "../${referenceName}/bin" "${aliasPath}/bin"
+				${CMAKE_COMMAND} -E remove_directory
+					"${aliasPath}/bin"
+			COMMAND
+				${CMAKE_COMMAND} -E create_symlink
+					"../${referenceName}/bin" "${aliasPath}/bin"
 			DEPENDS ${aliasName}-directory
 		)
 
@@ -266,7 +282,9 @@ function(AddDirectoryAliases targetName toolNames)
 
 		add_custom_target(${aliasName}-lib-directory
 			ALL
-			COMMAND mkdir -p "${aliasPath}/lib"
+			COMMAND
+				${CMAKE_COMMAND} -E make_directory
+					"${aliasPath}/lib"
 			DEPENDS ${aliasName}-directory
 		)
 
@@ -275,8 +293,11 @@ function(AddDirectoryAliases targetName toolNames)
 		add_custom_target(${aliasName}-ldscripts-directory
 			ALL
 			COMMAND
-				rm -Rf "${aliasPath}/lib/ldscripts"
-				&& ln -s "../../${referenceName}/lib/ldscripts" "${aliasPath}/lib/ldscripts"
+				${CMAKE_COMMAND} -E remove_directory
+					"${aliasPath}/lib/ldscripts"
+			COMMAND
+				${CMAKE_COMMAND} -E create_symlink
+					"../../${referenceName}/lib/ldscripts" "${aliasPath}/lib/ldscripts"
 			DEPENDS ${aliasName}-lib-directory
 		)
 
@@ -290,8 +311,11 @@ function(AddDirectoryAliases targetName toolNames)
 		add_custom_target(${targetName}-${toolName}-alias
 			ALL
 			COMMAND
-				rm -f "${toolPath}"
-				&& ln -s "${referencePath}" "${toolPath}"
+				${CMAKE_COMMAND} -E remove
+					"${toolPath}"
+			COMMAND
+				${CMAKE_COMMAND} -E create_symlink
+					"${referencePath}" "${toolPath}"
 			DEPENDS ${aliasName}-lib-directory
 		)
 
@@ -300,11 +324,10 @@ function(AddDirectoryAliases targetName toolNames)
 endfunction()
 
 function(DeleteUselessFiles targetName filePaths)
-	list(APPEND deleteCommand "echo")
-
 	foreach(filePath IN LISTS filePaths)
-		list(APPEND deleteCommand
-			&& ${CMAKE_COMMAND} -E rm -f "${CMAKE_INSTALL_PREFIX}/${filePath}"
+		list(APPEND deleteCommands
+			COMMAND
+				${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/${filePath}"
 		)
 	endforeach()
 
@@ -312,7 +335,7 @@ function(DeleteUselessFiles targetName filePaths)
 
 	add_custom_target(${deletesName}
 		ALL
-		COMMAND ${deleteCommand}
+		${deleteCommands}
 		DEPENDS ${targetName}-binaries
 	)
 

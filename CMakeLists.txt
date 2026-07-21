@@ -348,8 +348,14 @@ if (BUILD_BINUTILS)
 	add_custom_target(binutils-lib64-alias
 		ALL
 		COMMAND
-			mkdir -p "${CMAKE_INSTALL_PREFIX}/x86_64-nacl"
-			&& ln -sfn lib "${CMAKE_INSTALL_PREFIX}/x86_64-nacl/lib64"
+			${CMAKE_COMMAND} -E make_directory
+				"${CMAKE_INSTALL_PREFIX}/x86_64-nacl"
+		COMMAND
+			${CMAKE_COMMAND} -E remove_directory
+				"${CMAKE_INSTALL_PREFIX}/x86_64-nacl/lib64"
+		COMMAND
+			${CMAKE_COMMAND} -E create_symlink
+				lib "${CMAKE_INSTALL_PREFIX}/x86_64-nacl/lib64"
 		DEPENDS binutils-binaries
 	)
 
@@ -440,8 +446,11 @@ if (BUILD_SAIGOLIBS)
 	add_custom_target(saigolibs-arm-core-alias
 		ALL
 		COMMAND
-			rm -Rf "${CMAKE_INSTALL_PREFIX}/arm-nacl/include"
-			&& ln -s "../x86_64-nacl/include" "${CMAKE_INSTALL_PREFIX}/arm-nacl/include"
+			${CMAKE_COMMAND} -E remove_directory
+				"${CMAKE_INSTALL_PREFIX}/arm-nacl/include"
+		COMMAND
+			${CMAKE_COMMAND} -E create_symlink
+				"../x86_64-nacl/include" "${CMAKE_INSTALL_PREFIX}/arm-nacl/include"
 		DEPENDS saigolibs-x86_64-core-binaries saigolibs-arm-core-binaries
 			saigolibs-x86_64-libcxx-binaries saigolibs-arm-libcxx-binaries
 	)
@@ -449,8 +458,11 @@ if (BUILD_SAIGOLIBS)
 	add_custom_target(saigolibs-arm-libcxx-alias
 		ALL
 		COMMAND
-			rm -Rf "${CMAKE_INSTALL_PREFIX}/arm-nacl/share"
-			&& ln -s "../x86_64-nacl/share" "${CMAKE_INSTALL_PREFIX}/arm-nacl/share"
+			${CMAKE_COMMAND} -E remove_directory
+				"${CMAKE_INSTALL_PREFIX}/arm-nacl/share"
+		COMMAND
+			${CMAKE_COMMAND} -E create_symlink
+				"../x86_64-nacl/share" "${CMAKE_INSTALL_PREFIX}/arm-nacl/share"
 		DEPENDS saigolibs-x86_64-libcxx-binaries saigolibs-arm-libcxx-binaries
 	)
 
@@ -466,6 +478,8 @@ endif()
 # just in case someone does: `cmake -DCMAKE_INSTALL_PREFIX=/usr`…
 add_custom_target(distclean
     COMMAND
-		${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/install"
-		&& ${CMAKE_COMMAND} --build "${CMAKE_CURRENT_BINARY_DIR}" --target clean
+		${CMAKE_COMMAND} -E remove_directory
+			"${CMAKE_CURRENT_BINARY_DIR}/install"
+	COMMAND
+		${CMAKE_COMMAND} --build "${CMAKE_CURRENT_BINARY_DIR}" --target clean
 )
