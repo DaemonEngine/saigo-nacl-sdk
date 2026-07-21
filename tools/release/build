@@ -30,19 +30,14 @@ export nproc_count="$("${script_dir}/nproc")"
 export mem_count="$(echo "$(${script_dir}/freemem) 8" | awk '{r = int($1 / $2); print (r < 1 ? 1 : r)}')"
 export safer_count="$(echo "${nproc_count} ${mem_count}" | awk '{print ($1 < $2 ? $1 : $2)}')"
 
+DO_BUILD="${DO_BUILD:-ON}"
+
 if [ -z "${USE_CCACHE:-}" ]
 then
 	if command -v ccache >/dev/null 2>&1
 	then
 		USE_CCACHE='ON'
 	fi
-fi
-
-export USE_CCACHE="${USE_CCACHE:-}"
-
-if [ "${USE_CCACHE}" = 'ON' ]
-then
-	echo "Using Ccache"
 fi
 
 if [ -z "${USE_ICECC:-}" ]
@@ -53,29 +48,24 @@ then
 	fi
 fi
 
-export USE_ICECC="${USE_ICECC:-}"
-
-if [ "${USE_ICECC}" = 'ON' ]
+if [ -n "${JOBS:-}" ]
 then
-	echo "Using IceCC"
-fi
-
-export USE_MOLD="${USE_MOLD:-}"
-
-export USE_LTO="${USE_LTO:-}"
-
-if [ "${USE_LTO}" = 'ON' ]
-then
-	echo "Using LTO"
-fi
-
-if [ "${USE_ICECC}" = 'ON' ]
+	export safer_count="${JOBS}"
+	echo "Using ${safer_count} jobs"
+elif [ "${USE_ICECC:-}" = 'ON' ]
 then
 	echo "Using distributed jobs"
 	export safer_count='999'
 else
 	echo "Using ${safer_count} jobs"
 fi
+
+export DO_BUILD="${DO_BUILD:-ON}"
+
+export USE_ICECC="${USE_ICECC:-}"
+export USE_CCACHE="${USE_CCACHE:-}"
+export USE_MOLD="${USE_MOLD:-}"
+export USE_LTO="${USE_LTO:-}"
 
 export CMAKE_BUILD_PARALLEL_LEVEL="${safer_count}"
 export MAKEFLAGS="-j${safer_count}"
@@ -94,8 +84,6 @@ do
 		echo "WARN: Missing ${target_name} configuration" >&2
 		continue
 	fi
-
-	echo "Building ${target_name}"
 
 	cmake_args=(-S "${repo_dir}" -G'Unix Makefiles')
 
@@ -181,8 +169,25 @@ do
 
 	build_dir="${repo_dir}/build/${target_name}${NAME_SUFFIX}"
 
-	cmake -B "${build_dir}" "${cmake_args[@]}"
-	cmake --build "${build_dir}"
+	echo "Configuring ${target_name}"
 
-	find "${build_dir}/install" -type d -exec rmdir {} \; 2>/dev/null || true
+	if ! cmake -B "${build_dir}" "${cmake_args[@]}"
+	then
+		echo "Failed to configure ${target_name}" >&2
+		false
+	fi
+
+	case "${DO_BUILD}" in
+	'ON')
+		echo "Building ${target_name}"
+
+		if ! cmake --build "${build_dir}"
+		then
+			echo "Failed to build ${target_name}" >&2
+			false
+		fi
+
+		find "${build_dir}/install" -type d -exec rmdir {} \; 2>/dev/null || true
+		;;
+	esac
 done
