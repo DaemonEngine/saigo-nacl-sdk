@@ -48,6 +48,7 @@ AddGitProject("binutils"
 	"0002-config-sub-enable-riscv64-and-loong64.patch"
 	"0003-libiberty-waitpid-c-only-compile-waitpid-when-have-waitpid.patch"
 	"0004-ld-makefile-in-do-not-build-libldtestplug-la-testplug-lo.patch"
+	"0005-config-sub-enable-arm64.patch"
 )
 
 AddGitProject("nacl"

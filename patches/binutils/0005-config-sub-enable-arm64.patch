@@ -1,0 +1,34 @@
+From c964f955908a3c517ff253fd502b334032ae3c42 Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Fri, 24 Jul 2026 16:54:09 +0200
+Subject: [PATCH] config.sub: enable arm64
+
+---
+ config.sub | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/config.sub b/config.sub
+index d6070ccedb..3a73e51f88 100755
+--- a/config.sub
++++ b/config.sub
+@@ -248,7 +248,7 @@ case $basic_machine in
+ 	# Some are omitted here because they have special meanings below.
+ 	1750a | 580 \
+ 	| a29k \
+-	| aarch64 | aarch64_be \
++	| aarch64 | aarch64_be | arm64 \
+ 	| alpha | alphaev[4-8] | alphaev56 | alphaev6[78] | alphapca5[67] \
+ 	| alpha64 | alpha64ev[4-8] | alpha64ev56 | alpha64ev6[78] | alpha64pca5[67] \
+ 	| am33_2.0 \
+@@ -366,7 +366,7 @@ case $basic_machine in
+ 	# Recognize the basic CPU types with company name.
+ 	580-* \
+ 	| a29k-* \
+-	| aarch64-* | aarch64_be-* \
++	| aarch64-* | aarch64_be-* | arm64-* \
+ 	| alpha-* | alphaev[4-8]-* | alphaev56-* | alphaev6[78]-* \
+ 	| alpha64-* | alpha64ev[4-8]-* | alpha64ev56-* | alpha64ev6[78]-* \
+ 	| alphapca5[67]-* | alpha64pca5[67]-* | arc-* | arceb-* \
+-- 
+2.43.0
+
