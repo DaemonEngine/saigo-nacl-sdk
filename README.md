@@ -46,7 +46,7 @@ Those patches keep the tools buildables and makes them more cross-platform (buil
 
 
 That other project makes possible to rebuild the loader without Google's complex collection of repositories and without shady Google's precompiled binaries and with our own fixes.
-We don't ship the runtime with Saigo and it may have his own release cycle.
+We don't ship the runtime with Saigo and it may have its own release cycle.
 
 In Japanese, _Saigo_ (さいご / 最後) means “_the last_”, “_the end_”, “_the final_” or “_the conclusion_”. This refers to the end of an era, the final stage of an event, or the last item in a sequence…
 
@@ -127,9 +127,7 @@ Those prerequisites are cumulatives
 CMake script:
 
 - `cmake`
-- `coreutils` (GNU or BSD)
 - `make` (GNU or obsolete Apple GNU)
-- `rsync`
 - `git`
 - A C/C++ compiler collection for the target, the following ones are supported:
   * GCC
