@@ -447,9 +447,6 @@ if (BUILD_GDB)
 	ExternalProject_Add(gdb-binaries
 		${EP_OPTIONS_GDB}
 		CONFIGURE_COMMAND
-			env ac_cv_search_tgetent=no
-				"ac_cv_search_tgetent=none required"
-				TERMCAP_LIBS=nothing-really
 			"${SOURCE_DIR_GDB}/configure"
 				${GDB_ENV}
 				${GDB_ARGS}
