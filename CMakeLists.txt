@@ -461,6 +461,7 @@ if (BUILD_GDB)
 				--without-zlib
 		BUILD_COMMAND
 			$(MAKE)
+				MAKEINFO=/bin/true
 				${GDB_ENV}
 		INSTALL_COMMAND
 			$(MAKE)
