@@ -427,7 +427,7 @@ if (BUILD_GDB)
 	list(APPEND GDB_EXE_LINKER_FLAGS ${EP_EXE_LINKER_FLAGS})
 
 	AddCompilerFlags("GDB" "C"
-		"-fcommon"
+		"-fcommon" "-Wno-error=implicit-function-declaration"
 	)
 
 	EnableConfigureLTO("GDB")
@@ -442,6 +442,13 @@ if (BUILD_GDB)
 
 	list(APPEND GDB_ARGS ${CONFIGURE_ARGS})
 
+
+	if (YOKAI_TARGET_SYSTEM_LINUX)
+		set(use_xml --with-expat)
+	else()
+		set(use_xml --without-expat)
+	endif()
+
 	# There is no working install-strip target.
 	# The gdbserver cannot be built when nacl targets are set.
 	ExternalProject_Add(gdb-binaries
@@ -454,7 +461,7 @@ if (BUILD_GDB)
 				--without-python
 				--disable-sim
 				--disable-tui
-				--with-expat
+				${use_xml}
 				--without-zlib
 		BUILD_COMMAND
 			$(MAKE)
