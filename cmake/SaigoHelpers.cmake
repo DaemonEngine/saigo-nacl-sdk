@@ -172,31 +172,41 @@ macro(AddTarProject PARENT_NAME NAME SUBDIR URL)
 	endif()
 endmacro()
 
-function(RenameBinaryAliases targetName toolNames)
-	set(renamesName ${targetName}-renames)
+function(PrefixBinaryNames targetName toolNames systemName)
+	set(renamesName ${targetName}-${systemName}-${targetName}-renames)
 	add_custom_target(${renamesName} ALL)
 	add_dependencies(${targetName} ${renamesName})
 	add_dependencies(${renamesName} ${targetName}-binaries)
 
-	set(targetPath "${CMAKE_INSTALL_PREFIX}/bin/${targetName}${CMAKE_EXECUTABLE_SUFFIX}")
-	set(referenceName "${targetName}-reference")
-	set(referencePath "${EXTERNAL_PROJECT_BASE}/tmp/${referenceName}${CMAKE_EXECUTABLE_SUFFIX}")
+	foreach(toolName ${toolNames})
+		set(oldPath "${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
+		set(newFile "${systemName}-${toolName}")
+		set(newPath "${newFile}${CMAKE_EXECUTABLE_SUFFIX}")
+		set(renameName "${targetName}-${newFile}")
 
-	add_custom_target(${referenceName}
-		ALL
-		COMMAND
-			${CMAKE_COMMAND} -E remove
-				"${referencePath}"
-		COMMAND
-			${CMAKE_COMMAND} -E copy
-				"${targetPath}" "${referencePath}"
-		DEPENDS ${targetName}-binaries
-	)
+		add_custom_target(${renameName}
+			COMMAND
+				${CMAKE_COMMAND}
+					"-DOLD_FILE=${CMAKE_INSTALL_PREFIX}/bin/${oldPath}"
+					"-DNEW_FILE=${CMAKE_INSTALL_PREFIX}/bin/${newPath}"
+					-P "${CMAKE_SOURCE_DIR}/cmake/SaigoRenameWhenNeeded.cmake"
+			DEPENDS ${targetName}-binaries
+			VERBATIM
+		)
 
-	add_dependencies(${targetName} ${referenceName})
+		add_dependencies(${renamesName} ${renameName})
+	endforeach()
+endfunction()
+
+function(AddPrefixBinaryAliases targetName referenceName toolNames systemName)
+	set(renamesName ${targetName}-${targetPrefix}${targetName}-aliases)
+	add_custom_target(${renamesName} ALL)
+	add_dependencies(${targetName} ${renamesName})
+	add_dependencies(${renamesName} ${targetName}-binaries)
 
 	foreach(toolName ${toolNames})
-		set(aliasFile "${REFERENCE_ARCH_NAME}-${REFERENCE_SYSTEM_NAME}-${toolName}")
+		set(referencePath "${systemName}-${referenceName}${CMAKE_EXECUTABLE_SUFFIX}")
+		set(aliasFile "${systemName}-${toolName}")
 		set(aliasName "${targetName}-${aliasFile}")
 		set(aliasPath "${CMAKE_INSTALL_PREFIX}/bin/${aliasFile}${CMAKE_EXECUTABLE_SUFFIX}")
 
@@ -206,27 +216,27 @@ function(RenameBinaryAliases targetName toolNames)
 				${CMAKE_COMMAND} -E remove
 					"${aliasPath}"
 			COMMAND
-				${CMAKE_COMMAND} -E copy
+				${CMAKE_COMMAND} -E create_symlink
 					"${referencePath}" "${aliasPath}"
-			DEPENDS ${referenceName}
+			DEPENDS ${targetName}-binaries
 		)
 
-		add_dependencies(${renamesName} ${aliasName})
+		add_dependencies(${targetName} ${aliasName})
 	endforeach()
 endfunction()
 
-function(AddBinaryAliases targetName toolNames)
+function(AddBinaryAliases targetName toolNames systemName archNames)
 	set(aliasesName ${targetName}-aliases)
 	add_custom_target(${aliasesName} ALL)
 	add_dependencies(${targetName} ${aliasesName})
 	add_dependencies(${aliasesName} ${targetName}-binaries)
 
-	foreach(archName ${ALIAS_BIN_ARCH_NAMES})
+	foreach(archName ${archNames})
 		foreach(toolName ${toolNames})
-			set(referenceName "${REFERENCE_ARCH_NAME}-${REFERENCE_SYSTEM_NAME}-${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
-			set(aliasFile "${archName}-${REFERENCE_SYSTEM_NAME}-${toolName}")
-			set(aliasName "${targetName}-${aliasFile}")
+			set(referencePath "${systemName}-${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
+			set(aliasFile "${archName}-${systemName}-${toolName}")
 			set(aliasPath "${CMAKE_INSTALL_PREFIX}/bin/${aliasFile}${CMAKE_EXECUTABLE_SUFFIX}")
+			set(aliasName "${targetName}-${aliasFile}")
 
 			add_custom_target(${aliasName}
 				ALL
@@ -235,7 +245,7 @@ function(AddBinaryAliases targetName toolNames)
 						"${aliasPath}"
 				COMMAND
 					${CMAKE_COMMAND} -E create_symlink
-						"${referenceName}" "${aliasPath}"
+						"${referencePath}" "${aliasPath}"
 				DEPENDS ${targetName}-binaries
 			)
 
@@ -244,18 +254,45 @@ function(AddBinaryAliases targetName toolNames)
 	endforeach()
 endfunction()
 
-function(AddDirectoryAliases targetName toolNames)
+function(AddDirectoryBinaryAliases targetName toolNames systemName primaryArchName)
+	set(aliasesName ${targetName}-directory-binary-aliases)
+	add_custom_target(${aliasesName} ALL)
+	add_dependencies(${targetName} ${aliasesName})
+	add_dependencies(${aliasesName} ${targetName}-binaries)
+
+	set(referenceName "${primaryArchName}-${systemName}")
+
+	foreach(toolName ${toolNames})
+		set(toolPath "${CMAKE_INSTALL_PREFIX}/${referenceName}/bin/${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
+		set(referencePath "../../bin/${systemName}-${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
+
+		add_custom_target(${targetName}-${toolName}-alias
+			ALL
+			COMMAND
+				${CMAKE_COMMAND} -E remove
+					"${toolPath}"
+			COMMAND
+				${CMAKE_COMMAND} -E create_symlink
+					"${referencePath}" "${toolPath}"
+			DEPENDS ${targetName}-binaries
+		)
+
+		add_dependencies(${aliasesName} ${targetName}-${toolName}-alias)
+	endforeach()
+endfunction()
+
+function(AddDirectoryAliases targetName systemName primaryArchName archNames)
 	set(aliasesName ${targetName}-directory-aliases)
 	add_custom_target(${aliasesName} ALL)
 	add_dependencies(${targetName} ${aliasesName})
 	add_dependencies(${aliasesName} ${targetName}-binaries)
 
-	set(referenceName "${REFERENCE_ARCH_NAME}-${REFERENCE_SYSTEM_NAME}")
+	set(referenceName "${primaryArchName}-${systemName}")
 
-	foreach(archName ${ALIAS_DIR_ARCH_NAMES})
-		set(aliasDir "${archName}-${REFERENCE_SYSTEM_NAME}")
-		set(aliasName "${targetName}-${aliasDir}")
+	foreach(archName ${archNames})
+		set(aliasDir "${archName}-${systemName}")
 		set(aliasPath "${CMAKE_INSTALL_PREFIX}/${aliasDir}")
+		set(aliasName "${targetName}-${aliasDir}")
 
 		add_custom_target(${aliasName}-directory
 			ALL
@@ -302,24 +339,6 @@ function(AddDirectoryAliases targetName toolNames)
 		)
 
 		add_dependencies(${aliasesName} ${aliasName}-ldscripts-directory)
-	endforeach()
-
-	foreach(toolName ${toolNames})
-		set(toolPath "${CMAKE_INSTALL_PREFIX}/${referenceName}/bin/${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
-		set(referencePath "../../bin/${referenceName}-${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
-
-		add_custom_target(${targetName}-${toolName}-alias
-			ALL
-			COMMAND
-				${CMAKE_COMMAND} -E remove
-					"${toolPath}"
-			COMMAND
-				${CMAKE_COMMAND} -E create_symlink
-					"${referencePath}" "${toolPath}"
-			DEPENDS ${aliasName}-lib-directory
-		)
-
-		add_dependencies(${aliasesName} ${targetName}-${toolName}-alias)
 	endforeach()
 endfunction()
 
@@ -422,6 +441,7 @@ macro(AddTargetConfigureArgs NAME)
 	list(APPEND ${NAME}_ARGS
 			"--target=${TRIPLE_TARGET}"
 			"--enable-targets=${CONFIGURE_TRIPLE_TARGETS}"
+			"--program-prefix=${CONFIGURE_PROGRAM_PREFIX}"
 	)
 endmacro()
 

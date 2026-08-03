@@ -18,6 +18,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# Some generated files will have this string in their name,
+# we don't control it, but we need to know it before hand.
+set(SAIGO_CLANG_VERSION "21")
+
+# Saigo system name and architecture names.
+set(SAIGO_SYSTEM_NAME "nacl")
+set(SAIGO_ARCH_NAMES "x86_64" "i686" "arm")
+
 cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -28,10 +36,6 @@ include(ExternalProject)
 
 include(SaigoHelpers)
 include(SaigoSetup)
-
-# Some generated files will have this string in their name,
-# we don't control it, but we need to know it before hand.
-set(SAIGO_CLANG_VERSION "21")
 
 AddGitProject("clang"
 	"llvm-project"
@@ -58,11 +62,6 @@ AddGitProject("nacl"
 )
 
 include(saigolibs-tarballs.cmake)
-
-set(REFERENCE_SYSTEM_NAME "nacl")
-set(REFERENCE_ARCH_NAME "x86_64")
-set(ALIAS_BIN_ARCH_NAMES "i686" "arm")
-set(ALIAS_DIR_ARCH_NAMES "arm")
 
 if (BUILD_CLANG)
 	if (USE_LTO)
@@ -268,16 +267,39 @@ if (BUILD_CLANG)
 
 	add_dependencies(clang clang-binaries)
 
-	set(clangToolNames
-		clang
-		clang++
+	PrefixBinaryNames(clang
+		"clang-${SAIGO_CLANG_VERSION}"
+		"${SAIGO_SYSTEM_NAME}"
 	)
 
-	RenameBinaryAliases(clang "${clangToolNames}")
-	AddBinaryAliases(clang "${clangToolNames}")
+	set(clangPrefixToolNames
+		"clang"
+		"clang++"
+		"clang-cpp"
+	)
+
+	AddPrefixBinaryAliases(clang
+		"clang-${SAIGO_CLANG_VERSION}"
+		"${clangPrefixToolNames}"
+		"${SAIGO_SYSTEM_NAME}"
+	)
+
+	set(clangToolNames
+		"clang"
+		"clang++"
+	)
+
+	AddBinaryAliases(clang
+		"${clangToolNames}"
+		"${SAIGO_SYSTEM_NAME}"
+		"${SAIGO_ARCH_NAMES}"
+	)
 
 	set(clangUselessFiles
+		"bin/clang${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/clang++${CMAKE_EXECUTABLE_SUFFIX}"
 		"bin/clang-cl${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/clang-cpp${CMAKE_EXECUTABLE_SUFFIX}"
 		"bin/hmaptool"
 		"lib/cmake/llvm/LLVMConfigExtensions.cmake"
 	)
@@ -326,25 +348,36 @@ if (BUILD_BINUTILS)
 	add_dependencies(binutils binutils-binaries)
 
 	set(binutilsToolNames
-		ar
-		as
-		ld
-		nm
-		ranlib
-		strip
+		"ar"
+		"ld"
+		"strip"
+	)
+
+	AddBinaryAliases(binutils
+		"${binutilsToolNames}"
+		"${SAIGO_SYSTEM_NAME}"
+		"${SAIGO_ARCH_NAMES}"
 	)
 
 	set(binutilsDirectoryToolNames
-		ar
-		as
-		ld
-		nm
-		ranlib
-		strip
+		"ld"
 	)
 
-	AddBinaryAliases(binutils "${binutilsToolNames}")
-	AddDirectoryAliases(binutils "${binutilsDirectoryToolNames}")
+	AddDirectoryBinaryAliases(binutils
+		"${binutilsDirectoryToolNames}"
+		"${SAIGO_SYSTEM_NAME}"
+		"${SAIGO_PRIMARY_ARCH_NAME}"
+	)
+
+	set(binutilsDirectoryArchNames
+		"arm"
+	)
+
+	AddDirectoryAliases(binutils
+		"${SAIGO_SYSTEM_NAME}"
+		"${SAIGO_PRIMARY_ARCH_NAME}"
+		"${binutilsDirectoryArchNames}"
+	)
 
 	add_custom_target(binutils-lib64-alias
 		ALL
@@ -363,14 +396,14 @@ if (BUILD_BINUTILS)
 	add_dependencies(binutils-aliases binutils-lib64-alias)
 
 	set(binutilsUselessFiles
-		"bin/x86_64-nacl-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-c++filt${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-elfedit${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-gprof${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-objcopy${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-size${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/x86_64-nacl-strings${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-c++filt${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-elfedit${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-gprof${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-objcopy${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-size${CMAKE_EXECUTABLE_SUFFIX}"
+		"bin/nacl-strings${CMAKE_EXECUTABLE_SUFFIX}"
 		"share/info/as.info"
 		"share/info/bfd.info"
 		"share/info/binutils.info"
@@ -379,28 +412,33 @@ if (BUILD_BINUTILS)
 		"share/info/gprof.info"
 		"share/info/ld.info"
 		"share/info/standards.info"
-		"share/man/man1/x86_64-nacl-addr2line.1"
-		"share/man/man1/x86_64-nacl-ar.1"
-		"share/man/man1/x86_64-nacl-as.1"
-		"share/man/man1/x86_64-nacl-c++filt.1"
-		"share/man/man1/x86_64-nacl-dlltool.1"
-		"share/man/man1/x86_64-nacl-elfedit.1"
-		"share/man/man1/x86_64-nacl-gprof.1"
-		"share/man/man1/x86_64-nacl-ld.1"
-		"share/man/man1/x86_64-nacl-nlmconv.1"
-		"share/man/man1/x86_64-nacl-nm.1"
-		"share/man/man1/x86_64-nacl-objcopy.1"
-		"share/man/man1/x86_64-nacl-objdump.1"
-		"share/man/man1/x86_64-nacl-ranlib.1"
-		"share/man/man1/x86_64-nacl-readelf.1"
-		"share/man/man1/x86_64-nacl-size.1"
-		"share/man/man1/x86_64-nacl-strings.1"
-		"share/man/man1/x86_64-nacl-strip.1"
-		"share/man/man1/x86_64-nacl-windmc.1"
-		"share/man/man1/x86_64-nacl-windres.1"
+		"share/man/man1/nacl-addr2line.1"
+		"share/man/man1/nacl-ar.1"
+		"share/man/man1/nacl-as.1"
+		"share/man/man1/nacl-c++filt.1"
+		"share/man/man1/nacl-dlltool.1"
+		"share/man/man1/nacl-elfedit.1"
+		"share/man/man1/nacl-gprof.1"
+		"share/man/man1/nacl-ld.1"
+		"share/man/man1/nacl-nlmconv.1"
+		"share/man/man1/nacl-nm.1"
+		"share/man/man1/nacl-objcopy.1"
+		"share/man/man1/nacl-objdump.1"
+		"share/man/man1/nacl-ranlib.1"
+		"share/man/man1/nacl-readelf.1"
+		"share/man/man1/nacl-size.1"
+		"share/man/man1/nacl-strings.1"
+		"share/man/man1/nacl-strip.1"
+		"share/man/man1/nacl-windmc.1"
+		"share/man/man1/nacl-windres.1"
+		"x86_64-nacl/bin/ar${CMAKE_EXECUTABLE_SUFFIX}"
+		"x86_64-nacl/bin/as${CMAKE_EXECUTABLE_SUFFIX}"
 		"x86_64-nacl/bin/ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
+		"x86_64-nacl/bin/nm${CMAKE_EXECUTABLE_SUFFIX}"
 		"x86_64-nacl/bin/objcopy${CMAKE_EXECUTABLE_SUFFIX}"
 		"x86_64-nacl/bin/objdump${CMAKE_EXECUTABLE_SUFFIX}"
+		"x86_64-nacl/bin/ranlib${CMAKE_EXECUTABLE_SUFFIX}"
+		"x86_64-nacl/bin/strip${CMAKE_EXECUTABLE_SUFFIX}"
 	)
 
 	DeleteUselessFiles(binutils "${binutilsUselessFiles}")
