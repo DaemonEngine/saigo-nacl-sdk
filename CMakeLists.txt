@@ -454,7 +454,7 @@ if (BUILD_GDB)
 				--without-python
 				--disable-sim
 				--disable-tui
-				--without-expat
+				--with-expat
 				--without-zlib
 		BUILD_COMMAND
 			$(MAKE)
