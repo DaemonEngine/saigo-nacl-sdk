@@ -457,10 +457,12 @@ if (BUILD_GDB)
 			"${SOURCE_DIR_GDB}/configure"
 				${GDB_ENV}
 				${GDB_ARGS}
+				--disable-werror
 				--disable-gdbserver
 				--without-python
 				--disable-sim
 				--disable-tui
+				--disable-win32-registry
 				${use_xml}
 				--without-zlib
 		BUILD_COMMAND
