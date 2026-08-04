@@ -489,6 +489,10 @@ if (BUILD_GDB)
 
 	list(APPEND GDB_ARGS ${CONFIGURE_ARGS})
 
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
+		list(APPEND GDB_ARGS "--disable-win32-registry")
+	endif()
+
 	if (NOT YOKAI_TARGET_SYSTEM_WINDOWS)
 		list(APPEND GDB_ARGS "--with-mini-termcap")
 	endif()
