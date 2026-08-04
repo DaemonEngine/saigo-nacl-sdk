@@ -118,6 +118,18 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		endif()
 	endif()
 
+	if (YOKAI_C_COMPILER_CLANG_COMPATIBILITY)
+		# AppleClang prints a lot of unknown warnings set by configure as a standard,
+		# we better silence that in all cases even when configure is not involved.
+		list(APPEND COMPILER_FLAGS "-Wno-unknown-warning-option")
+	endif()
+
+	if (YOKAI_C_COMPILER_GCC_COMPATIBILITY)
+		# Clang pretends to be GCC compatible but may not support the exact same flags,
+		# if this is unknown on Clang, the previous option will take care of that.
+		list(APPEND COMPILER_FLAGS "-Wno-unknown-warning")
+	endif()
+
 	if (YOKAI_TARGET_SYSTEM_MACOS)
 		if (NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
 			list(APPEND COMPILER_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
