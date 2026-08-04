@@ -1,0 +1,117 @@
+From ddecfaa6c375bdd68c36d09892339e39ea65a64e Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Wed, 22 Jul 2026 02:32:45 +0200
+Subject: [PATCH] gdb: add mini-termcap.c
+
+---
+ gdb/mini-termcap.c | 98 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 98 insertions(+)
+ create mode 100644 gdb/mini-termcap.c
+
+diff --git a/gdb/mini-termcap.c b/gdb/mini-termcap.c
+new file mode 100644
+index 00000000..a7214ddd
+--- /dev/null
++++ b/gdb/mini-termcap.c
+@@ -0,0 +1,98 @@
++// CC0 1.0 Daemon Developers
++
++#include <stdio.h>
++#include <string.h>
++
++char PC = 0;
++char *BC = "\b";
++char *UP = "\033[A";
++
++int tgetent(char *bp, const char *name)
++{
++	(void) bp;
++	(void) name;
++	return 1;
++}
++
++int tgetflag(char *id)
++{
++	return 0;
++}
++
++int tgetnum(char *id)
++{
++	if (!strncmp(id, "co", 3))
++	{
++		return 80;
++	}
++
++	if (!strncmp(id, "li", 3))
++	{
++		return 24;
++	}
++
++	return -1;
++}
++
++char * tgetstr(char *id, char **area)
++{
++	const char *s = NULL;
++
++	if (!strncmp(id, "cl", 3))
++	{
++		s = "\033[H\033[J";
++	}
++	else if (!strncmp(id, "ce", 3))
++	{
++		s = "\033[K";
++	}
++	else if (!strncmp(id, "up", 3))
++	{
++		s = "\033[A";
++	}
++	else if (!strncmp(id, "le", 3))
++	{
++		s = "\b";
++	}
++
++	if (!s)
++	{
++		return NULL;
++	}
++
++	if (area)
++	{
++		char *p = *area;
++		strcpy(p, s);
++		*area += strlen(s) + 1;
++		return p;
++	}
++
++	return (char *)s;
++}
++
++char * tgoto(const char *cap, int col, int row)
++{
++	static char buf[32];
++
++	if (!cap)
++	{
++		return NULL;
++	}
++
++	snprintf(buf, sizeof(buf), "\033[%d;%dH", row + 1, col + 1);
++
++	return buf;
++}
++
++int tputs(const char *str, int affcnt, int (*putc_fn)(int))
++{
++	(void) affcnt;
++
++	while (*str)
++	{
++		putc_fn(*str++);
++	}
++
++	return 0;
++}
+-- 
+2.43.0
+

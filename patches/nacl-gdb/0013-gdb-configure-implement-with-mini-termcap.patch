@@ -1,0 +1,43 @@
+From f6e223c8db7ebd213461abbcd9278e899d22c321 Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Wed, 22 Jul 2026 02:32:45 +0200
+Subject: [PATCH] gdb/configure: implement --with-mini-termcap
+
+---
+ gdb/configure | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/gdb/configure b/gdb/configure
+index a5b1723e..612790ef 100755
+--- a/gdb/configure
++++ b/gdb/configure
+@@ -6973,6 +6973,14 @@ fi
+ # cases this will be provided by the curses library, but some systems
+ # have a seperate termcap library, or no curses library at all.
+ 
++# Check whether --with-mini-termcap was given.
++if test "${with_mini_termcap+set}" = set; then :
++  withval=$with_mini_termcap;
++  with_mini_termcap=$withval
++else
++  with_mini_termcap=no
++fi
++
+ case $host_os in
+   cygwin*)
+     if test -d $srcdir/libtermcap; then
+@@ -6986,6 +6994,11 @@ case $host_os in
+     ac_cv_search_tgetent="none required"
+     CONFIG_OBS="$CONFIG_OBS windows-termcap.o"
+     ;;
++  *)
++    if test "x$with_mini_termcap" = "xyes"; then
++      ac_cv_search_tgetent="no"
++    fi
++    ;;
+ esac
+ 
+ # These are the libraries checked by Readline.
+-- 
+2.43.0
+

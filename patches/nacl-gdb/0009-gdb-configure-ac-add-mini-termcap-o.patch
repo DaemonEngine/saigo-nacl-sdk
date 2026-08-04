@@ -1,0 +1,27 @@
+From ed870358ebe5e6c7cb13d7f7556e0596511ca305 Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Wed, 22 Jul 2026 02:32:45 +0200
+Subject: [PATCH] gdb/configure.ac: add mini-termcap.o
+
+---
+ gdb/configure.ac | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/gdb/configure.ac b/gdb/configure.ac
+index 7c37f25e..4af6a3d8 100644
+--- a/gdb/configure.ac
++++ b/gdb/configure.ac
+@@ -635,7 +635,9 @@ esac
+ AC_SEARCH_LIBS(tgetent, [termcap tinfo curses ncurses])
+ 
+ if test "$ac_cv_search_tgetent" = no; then
+-  AC_MSG_ERROR([no termcap library found])
++  AC_MSG_NOTICE([no termcap library found, using mini-termcap])
++  ac_cv_search_tgetent="none required"
++  CONFIG_OBS="$CONFIG_OBS mini-termcap.o"
+ fi
+ 
+ AC_ARG_WITH([system-readline],
+-- 
+2.43.0
+

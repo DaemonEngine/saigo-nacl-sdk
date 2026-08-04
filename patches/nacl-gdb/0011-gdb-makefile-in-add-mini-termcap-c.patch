@@ -1,0 +1,25 @@
+From fc5e02c96579b52018a0ca7013a5d2c533a2fd0f Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Wed, 22 Jul 2026 02:32:45 +0200
+Subject: [PATCH] gdb/Makefile.in: add mini-termcap.c
+
+---
+ gdb/Makefile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gdb/Makefile.in b/gdb/Makefile.in
+index be30dfd8..3c3e8593 100644
+--- a/gdb/Makefile.in
++++ b/gdb/Makefile.in
+@@ -776,7 +776,7 @@ SFILES = ada-exp.y ada-lang.c ada-typeprint.c ada-valprint.c ada-tasks.c \
+ 	jit.c \
+ 	xml-syscall.c \
+ 	annotate.c common/signals.c copying.c dfp.c gdb.c inf-child.c \
+-	regset.c sol-thread.c windows-termcap.c \
++	regset.c sol-thread.c windows-termcap.c mini-termcap.c \
+ 	common/gdb_vecs.c common/common-utils.c common/xml-utils.c \
+ 	common/ptid.c common/buffer.c gdb-dlfcn.c common/agent.c \
+ 	common/format.c common/filestuff.c btrace.c record-btrace.c ctf.c \
+-- 
+2.43.0
+

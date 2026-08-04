@@ -1,0 +1,28 @@
+From eea6897c6969e7dea12ed763a5b7e1f5264d3bd3 Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Wed, 22 Jul 2026 02:32:45 +0200
+Subject: [PATCH] gdb/configure: add mini-termcap.o
+
+---
+ gdb/configure | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/gdb/configure b/gdb/configure
+index 5300b5ac..a5b1723e 100755
+--- a/gdb/configure
++++ b/gdb/configure
+@@ -7047,7 +7047,10 @@ fi
+ 
+ 
+ if test "$ac_cv_search_tgetent" = no; then
+-  as_fn_error "no termcap library found" "$LINENO" 5
++  { $as_echo "$as_me:${as_lineno-$LINENO}: no termcap library found, using mini-termcap" >&5
++  $as_echo "configure: no termcap library found, using mini-termcap" >&6; }
++  ac_cv_search_tgetent="none required"
++  CONFIG_OBS="$CONFIG_OBS mini-termcap.o"
+ fi
+ 
+ 
+-- 
+2.43.0
+
