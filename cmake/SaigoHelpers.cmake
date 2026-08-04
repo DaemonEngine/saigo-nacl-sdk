@@ -415,7 +415,7 @@ macro(EnableConfigureLTO NAME)
 			AddCompilerDefinitions("${NAME}" "-Dffs=__builtin_ffs")
 		endif()
 
-		list(APPEND ${NAME}_EXE_LINKER_FLAGS ${${NAME}_CFLAGS})
+		list(APPEND ${NAME}_EXE_LINKER_FLAGS ${${NAME}_C_FLAGS})
 	endif()
 endmacro()
 
