@@ -130,6 +130,16 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		list(APPEND COMPILER_FLAGS "-Wno-unknown-warning")
 	endif()
 
+	# This may be ignored by configure-builds, because of ordering, but then
+	# we use --disable-werror. It is good to set in all cases as we're building
+	# very old legacy software.
+	list(APPEND COMPILER_FLAGS "-Wno-error")
+
+	# This warning is configured as an error by default in newer versions of GCC
+	# so we may have to explicitly turn it off. In case it is unknown on Clang,
+	# previous flags to ignore unknown flags will ignore it.
+	list(APPEND COMPILER_FLAGS "-Wno-error=implicit-function-declaration")
+
 	if (YOKAI_TARGET_SYSTEM_MACOS)
 		if (NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
 			list(APPEND COMPILER_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
