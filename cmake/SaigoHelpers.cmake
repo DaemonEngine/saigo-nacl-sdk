@@ -464,3 +464,22 @@ macro(AddCompilerCmakeArgs NAME LANGS)
 
 	list(APPEND ${NAME}_ARGS "-DCMAKE_EXE_LINKER_FLAGS=${${NAME}_EXE_LINKER_FLAGS_STRING}")
 endmacro()
+
+function(SetLlvmTargetsToBuild archNames separator)
+	set(x86_64_LLVM "X86")
+	set(i686_LLVM "X86")
+	set(arm_LLVM "ARM")
+	set(mips_LLVM "Mips")
+
+	set(LLVM_targets)
+
+	foreach(archName IN ITEMS ${archNames})
+		set(LLVM_target "${${archName}_LLVM}")
+		if (NOT "${LLVM_target}" IN_LIST LLVM_targets)
+			list(APPEND LLVM_targets "${LLVM_target}")
+		endif()
+	endforeach()
+
+	list(JOIN LLVM_targets "${separator}" LLVM_TARGETS_TO_BUILD)
+	set(LLVM_TARGETS_TO_BUILD "${LLVM_TARGETS_TO_BUILD}" PARENT_SCOPE)
+endfunction()
