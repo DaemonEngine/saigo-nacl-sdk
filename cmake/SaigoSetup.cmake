@@ -167,7 +167,7 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		list(APPEND LTO_FLAGS "-Wno-ignored-optimization-argument")
 
 		foreach(flag IN ITEMS ${CMAKE_C_FLAGS})
-			list(APPEND EXE_LINKER_FLAGS ${flag})
+			list(APPEND EXE_LINKER_FLAGS "${flag}")
 		endforeach()
 
 		list(APPEND EXE_LINKER_FLAGS ${COMPILER_FLAGS})
