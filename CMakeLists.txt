@@ -292,19 +292,34 @@ if (BUILD_CLANG)
 
 	add_dependencies(clang clang-binaries)
 
+	# On Windows the base name is clang,
+	# elsewhere it is clang-21 with a clang symlink.
+	if (YOKAI_TARGET_SYSTEM_WINDOWS)
+		set(CLANG_BASE_NAME "clang")
+	else()
+		set(CLANG_BASE_NAME "clang-${SAIGO_CLANG_VERSION}")
+
+		list(APPEND clangPrefixToolNames
+			"clang"
+		)
+
+		list(APPEND clangUselessFiles
+			"bin/clang${CMAKE_EXECUTABLE_SUFFIX}"
+		)
+	endif()
+
 	PrefixBinaryNames(clang
-		"clang-${SAIGO_CLANG_VERSION}"
+		"${CLANG_BASE_NAME}"
 		"${SAIGO_SYSTEM_NAME}"
 	)
 
-	set(clangPrefixToolNames
-		"clang"
+	list(APPEND clangPrefixToolNames
 		"clang++"
 		"clang-cpp"
 	)
 
 	AddPrefixBinaryAliases(clang
-		"clang-${SAIGO_CLANG_VERSION}"
+		"${CLANG_BASE_NAME}"
 		"${clangPrefixToolNames}"
 		"${SAIGO_SYSTEM_NAME}"
 	)
@@ -320,8 +335,7 @@ if (BUILD_CLANG)
 		"${SAIGO_ARCH_NAMES}"
 	)
 
-	set(clangUselessFiles
-		"bin/clang${CMAKE_EXECUTABLE_SUFFIX}"
+	list(APPEND clangUselessFiles
 		"bin/clang++${CMAKE_EXECUTABLE_SUFFIX}"
 		"bin/clang-cl${CMAKE_EXECUTABLE_SUFFIX}"
 		"bin/clang-cpp${CMAKE_EXECUTABLE_SUFFIX}"
