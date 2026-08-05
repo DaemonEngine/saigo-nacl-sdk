@@ -469,7 +469,6 @@ function(SetLlvmTargetsToBuild archNames separator)
 	set(x86_64_LLVM "X86")
 	set(i686_LLVM "X86")
 	set(arm_LLVM "ARM")
-	set(mips_LLVM "Mips")
 
 	set(LLVM_targets)
 
