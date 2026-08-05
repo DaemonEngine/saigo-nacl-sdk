@@ -47,7 +47,7 @@ export git_date="$(git log -1 --format='%ct')"
 export touch_date="$(print_date "${git_date}" '+%Y-%m-%dT%H:%M:%S')"
 export version_date="$(print_date "${git_date}" '+%Y%m%d')"
 export version_string="21.0-${version_date}"
-export product_name='saigocc'
+export product_name='saigosdk'
 export release_dir="${repo_dir}/build/packages/${product_name}${NAME_SUFFIX}_${version_string}"
 
 export XZ_OPTS="${XZ_OPTS:--9e}"
@@ -153,12 +153,12 @@ then
 
 	for target_name in "${valid_target_names[@]}"
 	do
-		dir_name="saigocc-${target_name}${NAME_SUFFIX}_${version_string}"
+		dir_name="${product_name}-${target_name}${NAME_SUFFIX}_${version_string}"
 		pak_name="${dir_name}.tar.xz"
 		archive_names+=("${pak_name}")
 	done
 
-	sum_name="saigocc${NAME_SUFFIX}_${version_string}.sha512sum"
+	sum_name="${product_name}${NAME_SUFFIX}_${version_string}.sha512sum"
 
 	cd "${release_dir}"
 
