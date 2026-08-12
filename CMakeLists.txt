@@ -44,15 +44,26 @@ AddGitProject("clang"
 	"0001-cmake-accept-llvm-enable-lto-auto-option.patch"
 )
 
-AddGitProject("binutils"
-	"binutils"
+AddGitProject("binutils-x86"
+	"binutils-x86"
 	"https://chromium.googlesource.com/native_client/nacl-binutils.git"
-	"f009fc843ba7b9028f394725961bf899a172f45b"
-	"0001-gprof-makefile-fix-building-m-files.patch"
-	"0002-config-sub-enable-riscv64-and-loong64.patch"
-	"0003-libiberty-waitpid-c-only-compile-waitpid-when-have-waitpid.patch"
-	"0004-ld-makefile-in-do-not-build-libldtestplug-la-testplug-lo.patch"
-	"0005-config-sub-enable-arm64.patch"
+	"1d8592cc9f02cc9aeaef992c296376a8fd4c8761"
+	"binutils/0001-gprof-makefile-fix-building-m-files.patch"
+	"binutils/0002-config-sub-enable-riscv64-and-loong64.patch"
+	"binutils/0003-libiberty-waitpid-c-only-compile-waitpid-when-have-waitpid.patch"
+	"binutils/0004-ld-makefile-in-do-not-build-libldtestplug-la-testplug-lo.patch"
+	"binutils/0005-config-sub-enable-arm64.patch"
+)
+
+AddGitProject("binutils-arm"
+	"binutils-arm"
+	"https://chromium.googlesource.com/native_client/nacl-binutils.git"
+	"47a96d057be116b4dc6289f54c873d086f320915"
+	"binutils/0001-gprof-makefile-fix-building-m-files.patch"
+	"binutils/0002-config-sub-enable-riscv64-and-loong64.patch"
+	"binutils/0003-libiberty-waitpid-c-only-compile-waitpid-when-have-waitpid.patch"
+	"binutils/0004-ld-makefile-in-do-not-build-libldtestplug-la-testplug-lo.patch"
+	"binutils/0005-config-sub-enable-arm64.patch"
 )
 
 AddGitProject("gdb"
@@ -82,6 +93,8 @@ AddGitProject("nacl"
 	"https://github.com/DaemonEngine/native_client.git"
 	"ae29840014b5c08c7733ee9257741d421723255a"
 )
+
+option(BUILD_BINUTILS "Build the binutils." ON)
 
 include(saigolibs-tarballs.cmake)
 
@@ -346,142 +359,219 @@ if (BUILD_CLANG)
 endif()
 
 if (BUILD_BINUTILS)
-	list(APPEND BINUTILS_C_FLAGS ${EP_C_FLAGS})
-	list(APPEND BINUTILS_EXE_LINKER_FLAGS ${EP_EXE_LINKER_FLAGS})
+	add_custom_target(binutils ALL)
 
-	EnableConfigureLTO("BINUTILS")
+	foreach(binutilsArchName IN ITEMS "x86" "arm")
+		add_dependencies(binutils binutils-${binutilsArchName})
 
-	ListToString("BINUTILS_C_FLAGS")
-	ListToString("BINUTILS_EXE_LINKER_FLAGS")
+		string(TOUPPER "${binutilsArchName}" binutilsArchSlug)
 
-	AddCompilerConfigureEnv("BINUTILS" "C")
+		if (BUILD_BINUTILS_${binutilsArchSlug})
+			list(APPEND binutilsArchNames "${binutilsArchName}")
+		endif()
+	endforeach()
 
-	list(APPEND BINUTILS_ENV ${CONFIGURE_ENV} ${BUILD_ENV})
+	if (NOT "${binutilsArchNames}" STREQUAL "")
+		list(APPEND BINUTILS_C_FLAGS ${EP_C_FLAGS})
+		list(APPEND BINUTILS_EXE_LINKER_FLAGS ${EP_EXE_LINKER_FLAGS})
 
-	AddTargetConfigureArgs("BINUTILS")
+		EnableConfigureLTO("BINUTILS")
 
-	list(APPEND BINUTILS_ARGS ${CONFIGURE_ARGS})
+		ListToString("BINUTILS_C_FLAGS")
+		ListToString("BINUTILS_EXE_LINKER_FLAGS")
 
-	ExternalProject_Add(binutils-binaries
-		${EP_OPTIONS_BINUTILS}
-		CONFIGURE_COMMAND
-			"${SOURCE_DIR_BINUTILS}/configure"
-				${BINUTILS_ENV}
-				${BINUTILS_ARGS}
-				--disable-gdb
-				--disable-gold
-				--disable-plugins
-				--disable-sim
-				--without-zlib
-		BUILD_COMMAND
-			$(MAKE)
-				${BINUTILS_ENV}
-		INSTALL_COMMAND
-			$(MAKE)
-				${BINUTILS_ENV}
-				"DESTDIR=${CMAKE_INSTALL_PREFIX}"
-				install-strip
-	)
+		AddCompilerConfigureEnv("BINUTILS" "C")
 
-	add_dependencies(binutils binutils-binaries)
+		list(APPEND BINUTILS_ENV ${CONFIGURE_ENV} ${BUILD_ENV})
 
-	set(binutilsToolNames
-		"ar"
-		"ld"
-		"nm"
-		"ranlib"
-		"strip"
-	)
+		list(APPEND BINUTILS_ARGS ${CONFIGURE_ARGS})
+	endif()
 
-	AddBinaryAliases(binutils
-		"${binutilsToolNames}"
-		"${SAIGO_SYSTEM_NAME}"
-		"${SAIGO_ARCH_NAMES}"
-	)
+	foreach(binutilsArchName IN LISTS binutilsArchNames)
+		string(TOUPPER "${binutilsArchName}" binutilsArchSlug)
 
-	set(binutilsDirectoryToolNames
-		"ld"
-	)
+		if ("${binutilsArchName}" STREQUAL "x86")
+			set(binutilsPrimaryArchName "x86_64")
+		elseif ("${binutilsArchName}" STREQUAL "arm")
+			set(binutilsPrimaryArchName "arm")
+		endif()
 
-	AddDirectoryBinaryAliases(binutils
-		"${binutilsDirectoryToolNames}"
-		"${SAIGO_SYSTEM_NAME}"
-		"${SAIGO_PRIMARY_ARCH_NAME}"
-	)
+		set(binutilsPrimaryTarget "${binutilsPrimaryArchName}-nacl")
 
-	set(binutilsDirectoryArchNames
-		"arm"
-	)
+		if ("${binutilsArchName}" STREQUAL "x86")
+			AddTargetConfigureArgs("BINUTILS_${binutilsArchSlug}")
+		elseif ("${binutilsArchName}" STREQUAL "arm")
+			list(APPEND "BINUTILS_${binutilsArchSlug}_ARGS"
+				"--target=${binutilsPrimaryTarget}"
+				"--enable-targets=${binutilsPrimaryTarget}"
+				"--program-prefix=${binutilsPrimaryTarget}-"
+			)
+		endif()
 
-	AddDirectoryAliases(binutils
-		"${SAIGO_SYSTEM_NAME}"
-		"${SAIGO_PRIMARY_ARCH_NAME}"
-		"${binutilsDirectoryArchNames}"
-	)
+		if ("${binutilsArchName}" STREQUAL "x86")
+			set(INSTALL_TARGET "install-strip")
+			set(POST_INSTALL_COMMAND
+				${CMAKE_COMMAND} -E true
+			)
+		elseif ("${binutilsArchName}" STREQUAL "arm")
+			set(INSTALL_TARGET "install")
+			set(POST_INSTALL_COMMAND
+				"${TRIPLE_STRIP}"
+					"${CMAKE_INSTALL_PREFIX}/bin/${binutilsPrimaryTarget}-as${CMAKE_EXECUTABLE_SUFFIX}"
+			)
+		endif()
 
-	add_custom_target(binutils-lib64-alias
-		ALL
-		COMMAND
-			${CMAKE_COMMAND} -E make_directory
-				"${CMAKE_INSTALL_PREFIX}/x86_64-nacl"
-		COMMAND
-			${CMAKE_COMMAND} -E remove_directory
-				"${CMAKE_INSTALL_PREFIX}/x86_64-nacl/lib64"
-		COMMAND
-			${CMAKE_COMMAND} -E create_symlink
-				lib "${CMAKE_INSTALL_PREFIX}/x86_64-nacl/lib64"
-		DEPENDS binutils-binaries
-	)
+		ExternalProject_Add(binutils-${binutilsArchName}-binaries
+			${EP_OPTIONS_BINUTILS_${binutilsArchSlug}}
+			CONFIGURE_COMMAND
+				"${SOURCE_DIR_BINUTILS_${binutilsArchSlug}}/configure"
+					${BINUTILS_ENV}
+					${BINUTILS_ARGS}
+					${BINUTILS_${binutilsArchSlug}_ARGS}
+					--disable-gdb
+					--disable-gold
+					--disable-plugins
+					--disable-sim
+					--without-zlib
+			BUILD_COMMAND
+				$(MAKE)
+					${BINUTILS_ENV}
+			INSTALL_COMMAND
+				$(MAKE)
+					${BINUTILS_ENV}
+					"DESTDIR=${CMAKE_INSTALL_PREFIX}"
+					"${INSTALL_TARGET}"
+				&& ${POST_INSTALL_COMMAND}
+		)
 
-	add_dependencies(binutils-aliases binutils-lib64-alias)
+		add_dependencies(binutils-${binutilsArchName} binutils-${binutilsArchName}-binaries)
+		add_dependencies(binutils binutils-${binutilsArchName})
 
-	set(binutilsUselessFiles
-		"bin/nacl-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-c++filt${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-elfedit${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-gprof${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-objcopy${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-size${CMAKE_EXECUTABLE_SUFFIX}"
-		"bin/nacl-strings${CMAKE_EXECUTABLE_SUFFIX}"
-		"share/info/as.info"
-		"share/info/bfd.info"
-		"share/info/binutils.info"
-		"share/info/configure.info"
-		"share/info/dir"
-		"share/info/gprof.info"
-		"share/info/ld.info"
-		"share/info/standards.info"
-		"share/man/man1/nacl-addr2line.1"
-		"share/man/man1/nacl-ar.1"
-		"share/man/man1/nacl-as.1"
-		"share/man/man1/nacl-c++filt.1"
-		"share/man/man1/nacl-dlltool.1"
-		"share/man/man1/nacl-elfedit.1"
-		"share/man/man1/nacl-gprof.1"
-		"share/man/man1/nacl-ld.1"
-		"share/man/man1/nacl-nlmconv.1"
-		"share/man/man1/nacl-nm.1"
-		"share/man/man1/nacl-objcopy.1"
-		"share/man/man1/nacl-objdump.1"
-		"share/man/man1/nacl-ranlib.1"
-		"share/man/man1/nacl-readelf.1"
-		"share/man/man1/nacl-size.1"
-		"share/man/man1/nacl-strings.1"
-		"share/man/man1/nacl-strip.1"
-		"share/man/man1/nacl-windmc.1"
-		"share/man/man1/nacl-windres.1"
-		"x86_64-nacl/bin/ar${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/as${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/nm${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/objcopy${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/objdump${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/ranlib${CMAKE_EXECUTABLE_SUFFIX}"
-		"x86_64-nacl/bin/strip${CMAKE_EXECUTABLE_SUFFIX}"
-	)
 
-	DeleteUselessFiles(binutils "${binutilsUselessFiles}")
+		if ("${binutilsArchName}" STREQUAL "x86")
+			set(binutilsToolNames
+				"ar"
+				"ld"
+				"nm"
+				"ranlib"
+				"strip"
+			)
+
+			AddBinaryAliases(binutils-${binutilsArchName}
+				"${binutilsToolNames}"
+				"${SAIGO_SYSTEM_NAME}"
+				"${SAIGO_ARCH_NAMES}"
+			)
+
+			add_custom_target(binutils-${binutilsArchName}-x86-binaries)
+			add_dependencies(binutils-${binutilsArchName}-x86-binaries binutils-${binutilsArchName}-binaries)
+			add_custom_target(binutils-${binutilsArchName}-x86)
+			add_dependencies(binutils-${binutilsArchName}-x86 binutils-${binutilsArchName}-x86-binaries)
+
+			AddBinaryAliases(binutils-${binutilsArchName}-x86
+				"as"
+				"${SAIGO_SYSTEM_NAME}"
+				"${binutilsPrimaryArchName};i686"
+			)
+		endif()
+
+		set(binutilsDirectoryToolNames
+			"ld"
+			"as"
+		)
+
+		AddDirectoryBinaryAliases(binutils-${binutilsArchName}
+			"${binutilsDirectoryToolNames}"
+			"${SAIGO_SYSTEM_NAME}"
+			"${binutilsPrimaryArchName}"
+		)
+
+		if ("${binutilsArchName}" STREQUAL "arm")
+			AddDirectoryAliases(binutils-${binutilsArchName}
+				"${SAIGO_SYSTEM_NAME}"
+				"${SAIGO_PRIMARY_ARCH_NAME}"
+				"${binutilsPrimaryArchName}"
+			)
+		endif()
+
+		if ("${binutilsArchName}" STREQUAL "x86")
+			set(BINUTILS_TARGET_PREFIX "${CMAKE_INSTALL_PREFIX}/${binutilsPrimaryTarget}")
+
+			add_custom_target(binutils-${binutilsArchName}-lib64-alias
+				ALL
+				COMMAND
+					${CMAKE_COMMAND} -E make_directory
+						"${BINUTILS_TARGET_PREFIX}"
+				COMMAND
+					${CMAKE_COMMAND} -E remove_directory
+						"${BINUTILS_TARGET_PREFIX}/lib64"
+				COMMAND
+					${CMAKE_COMMAND} -E create_symlink
+						lib "${BINUTILS_TARGET_PREFIX}/lib64"
+				DEPENDS binutils-${binutilsArchName}-binaries
+			)
+
+			add_dependencies(binutils-${binutilsArchName}-aliases binutils-${binutilsArchName}-lib64-alias)
+		endif()
+
+		if ("${binutilsArchName}" STREQUAL "x86")
+			set(binutilsDeleteTargetPrefix "${SAIGO_SYSTEM_NAME}")
+		elseif ("${binutilsArchName}" STREQUAL "arm")
+			set(binutilsDeleteTargetPrefix "${binutilsPrimaryTarget}")
+		endif()
+
+		set(binutilsUselessFiles
+			"bin/${binutilsDeleteTargetPrefix}-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-c++filt${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-elfedit${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-gprof${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-objcopy${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-readeld${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-size${CMAKE_EXECUTABLE_SUFFIX}"
+			"bin/${binutilsDeleteTargetPrefix}-strings${CMAKE_EXECUTABLE_SUFFIX}"
+			"share/info/as.info"
+			"share/info/bfd.info"
+			"share/info/binutils.info"
+			"share/info/configure.info"
+			"share/info/dir"
+			"share/info/gprof.info"
+			"share/info/ld.info"
+			"share/info/standards.info"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-addr2line.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-ar.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-as.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-c++filt.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-dlltool.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-elfedit.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-gprof.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-ld.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-nlmconv.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-nm.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-objcopy.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-objdump.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-ranlib.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-readelf.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-size.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-strings.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-strip.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-windmc.1"
+			"share/man/man1/${binutilsDeleteTargetPrefix}-windres.1"
+			"${binutilsDeleteTargetPrefix}/bin/ar${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsDeleteTargetPrefix}/bin/ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsDeleteTargetPrefix}/bin/nm${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsDeleteTargetPrefix}/bin/objcopy${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsDeleteTargetPrefix}/bin/objdump${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsDeleteTargetPrefix}/bin/ranlib${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsDeleteTargetPrefix}/bin/strip${CMAKE_EXECUTABLE_SUFFIX}"
+		)
+
+		DeleteUselessFiles(binutils-${binutilsArchName} "${binutilsUselessFiles}")
+	endforeach()
+
+	if (BUILD_BINUTILS_X86 AND BUILD_BINUTILS_ARM)
+		add_dependencies(binutils-arm binutils-x86)
+	endif()
 endif()
 
 if (BUILD_GDB)
