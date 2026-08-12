@@ -103,6 +103,15 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		set(EP_GENERATOR "${CMAKE_GENERATOR}")
 	endif()
 
+	set(LINK_PARALLEL_LEVEL "" CACHE STRING "Linking jobs count (when supported).")
+
+	if (NOT LINK_PARALLEL_LEVEL STREQUAL "")
+		list(APPEND EP_CMAKE_ARGS
+			"-DCMAKE_JOB_POOLS=link_pool=${LINK_PARALLEL_LEVEL}"
+			"-DCMAKE_JOB_POOL_LINK=link_pool"
+		)
+	endif()
+
 	if (USE_MOLD)
 		set(MOLD_FLAG "-fuse-ld=mold")
 
