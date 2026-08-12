@@ -271,7 +271,7 @@ function(AddDirectoryBinaryAliases targetName toolNames systemName primaryArchNa
 
 	foreach(toolName ${toolNames})
 		set(toolPath "${CMAKE_INSTALL_PREFIX}/${referenceName}/bin/${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
-		set(referencePath "../../bin/${systemName}-${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
+		set(referencePath "../../bin/${referenceName}-${toolName}${CMAKE_EXECUTABLE_SUFFIX}")
 
 		add_custom_target(${targetName}-${toolName}-alias
 			ALL
