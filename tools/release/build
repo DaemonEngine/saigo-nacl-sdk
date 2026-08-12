@@ -40,24 +40,42 @@ then
 	fi
 fi
 
+if [ -z "${USE_NINJA:-}" ]
+then
+	if command -v ninja >/dev/null 2>&1
+	then
+		USE_NINJA='ON'
+	fi
+fi
+
 if [ -z "${USE_ICECC:-}" ]
 then
 	if command -v icecc >/dev/null 2>&1
 	then
-		USE_ICECC='ON'
+		if [ "${USE_NINJA:-}" == 'ON' ]
+		then
+			USE_ICECC='ON'
+		fi
 	fi
 fi
 
 if [ -n "${JOBS:-}" ]
 then
-	export safer_count="${JOBS}"
-	echo "Using ${safer_count} jobs"
+	export build_jobs="${JOBS}"
+	export link_jobs= "${safer_count}"
+	echo "Using ${build_jobs} build jobs"
+	echo "Using ${link_jobs} link jobs"
 elif [ "${USE_ICECC:-}" = 'ON' ]
 then
+	export build_jobs='999'
+	export link_jobs="${safer_count}"
 	echo "Using distributed jobs"
-	export safer_count='999'
+	echo "Using ${link_jobs} link jobs"
 else
-	echo "Using ${safer_count} jobs"
+	export build_jobs="${nproc_count}"
+	export link_jobs="${safer_count}"
+	echo "Using ${build_jobs} build jobs"
+	echo "Using ${link_jobs} link jobs"
 fi
 
 export DO_BUILD="${DO_BUILD:-ON}"
@@ -67,8 +85,8 @@ export USE_CCACHE="${USE_CCACHE:-}"
 export USE_MOLD="${USE_MOLD:-}"
 export USE_LTO="${USE_LTO:-}"
 
-export CMAKE_BUILD_PARALLEL_LEVEL="${safer_count}"
-export MAKEFLAGS="-j${safer_count}"
+export CMAKE_BUILD_PARALLEL_LEVEL="${build_jobs}"
+export MAKEFLAGS="-j${build_jobs}"
 
 export CMAKE_DEBUG="${CMAKE_DEBUG:-}"
 export CMAKE_TRACE="${CMAKE_TRACE:-}"
@@ -115,9 +133,16 @@ do
 
 	cmake_args+=(-D'SHARED_REPOSITORIES_DIR'="${shared_dir}")
 
+	cmake_args+=(-D'LINK_PARALLEL_LEVEL'="${link_jobs}")
+
 	if [ -n "${USE_CCACHE}" ]
 	then
 		cmake_args+=(-D'USE_CCACHE'="${USE_CCACHE}")
+	fi
+
+	if [ -n "${USE_NINJA}" ]
+	then
+		cmake_args+=(-D'USE_NINJA'="${USE_NINJA}")
 	fi
 
 	if [ -n "${USE_ICECC}" ]
