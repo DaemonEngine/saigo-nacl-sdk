@@ -315,19 +315,6 @@ function(AddDirectoryAliases targetName systemName primaryArchName archNames)
 
 		add_dependencies(${aliasesName} ${aliasName}-directory)
 
-		add_custom_target(${aliasName}-bin-directory
-			ALL
-			COMMAND
-				${CMAKE_COMMAND} -E remove_directory
-					"${aliasPath}/bin"
-			COMMAND
-				${CMAKE_COMMAND} -E create_symlink
-					"../${referenceName}/bin" "${aliasPath}/bin"
-			DEPENDS ${aliasName}-directory
-		)
-
-		add_dependencies(${aliasesName} ${aliasName}-bin-directory)
-
 		add_custom_target(${aliasName}-lib-directory
 			ALL
 			COMMAND
