@@ -44,8 +44,15 @@ macro(AddGitProject NAME DIR URL TAG)
 					git reset --hard "${REPOSITORY_TAG_${SLUG}}")
 
 				foreach(patch_file IN LISTS patch_list)
-					list(APPEND PATCH_${SLUG}
-						&& git am "${CMAKE_SOURCE_DIR}/patches/${DIR}/${patch_file}")
+					string(FIND "${patch_file}" "/" POS)
+
+					if (POS EQUAL -1)
+						list(APPEND PATCH_${SLUG}
+							&& git am "${PATCHES_DIR}/${DIR}/${patch_file}")
+					else()
+						list(APPEND PATCH_${SLUG}
+							&& git am "${PATCHES_DIR}/${patch_file}")
+					endif()
 				endforeach()
 
 				list(APPEND PATCH_${SLUG}
