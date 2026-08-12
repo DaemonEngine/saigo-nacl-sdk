@@ -56,7 +56,7 @@ AddGitProject("binutils"
 )
 
 AddGitProject("gdb"
-	"nacl-gdb"
+	"gdb"
 	"https://chromium.googlesource.com/native_client/nacl-gdb"
 	"ef0bd30c46a9066309396c37b10a8ff9a726faf3"
 	"${PATCHES_DIR}/binutils/0002-config-sub-enable-riscv64-and-loong64.patch"
@@ -75,7 +75,6 @@ AddGitProject("gdb"
 	"0011-gdb-makefile-in-add-mini-termcap-c.patch"
 	"0012-gdb-configure-ac-implement-with-mini-termcap.patch"
 	"0013-gdb-configure-implement-with-mini-termcap.patch"
-
 )
 
 AddGitProject("nacl"
