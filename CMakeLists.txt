@@ -388,6 +388,8 @@ if (BUILD_BINUTILS)
 	set(binutilsToolNames
 		"ar"
 		"ld"
+		"nm"
+		"ranlib"
 		"strip"
 	)
 
