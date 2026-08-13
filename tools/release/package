@@ -46,7 +46,7 @@ print_date ()
 export git_date="$(git log -1 --format='%ct')"
 export touch_date="$(print_date "${git_date}" '+%Y-%m-%dT%H:%M:%S')"
 export version_date="$(print_date "${git_date}" '+%Y%m%d')"
-export version_string="21.0-${version_date}"
+export version_string="${version_date}"
 export product_name='saigosdk'
 export release_dir="${repo_dir}/build/packages/${product_name}${NAME_SUFFIX}_${version_string}"
 
