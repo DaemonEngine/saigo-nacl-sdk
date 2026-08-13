@@ -575,7 +575,9 @@ if (BUILD_BINUTILS)
 	endforeach()
 
 	if (BUILD_BINUTILS_X86 AND BUILD_BINUTILS_ARM)
-		add_dependencies(binutils-arm binutils-x86)
+		# Make sure aliases for the reusable executables from binutils-x86
+		# replace the executables from binutils-arm.
+		add_dependencies(binutils-x86-aliases binutils-arm-binaries)
 	endif()
 endif()
 
