@@ -14,7 +14,7 @@ The Dæmon Saigo project makes possible to rebuild the Native Client Software De
 Chromium development tools are **<ins>NOT</ins>** required to build.
 
 Saigo is a modern toolchain for compiling and debugging Native Client applications.
-Google never compiled the Saigo software development kit for something else than Linux on amd64,
+Google never compiled the Saigo SDK for something else than Linux on amd64,
 and their build process relied on a very complex collection of repositories involving the execution of prebuilt binaries.
 This project not only makes possible to rebuild Saigo for your preferred system and architecture,
 but does it without running any shady precompiled executable provided by Google.
@@ -41,7 +41,8 @@ Nothing about Native Client should be expected from Google anymore.
 
 ## Sources
 
-The present repository doesn't contain the Saigo code, it provides scripts and patches to build Saigo using Google upstream repositories.
+The present repository doesn't contain the Saigo code,
+it provides scripts and patches to build the Saigo software from Google upstream repositories.
 This project also ships with the compilers and debugger some NaCl C/C++ headers historically stored in the runtime repository:
 
 - [chromium.googlesource.com/native_client/nacl-llvm-project-v10](https://chromium.googlesource.com/native_client/nacl-llvm-project-v10) (Saigo NaCl Clang)
@@ -70,7 +71,7 @@ Saigo native GDB|✅️ Rebuilt from scratch
 Saigo nexe libc|☑️ Repackaged
 Saigo nexe libc++|☑️ Repackaged
 
-It is now possible to rebuild the compiler binaries (the NaCl Saigo Clang and related Binutils),
+It is now possible to rebuild the Saigo compiler collection and debugger (the NaCl Saigo Clang, related Binutils and GDB),
 and to do it for more platforms than initially supported by Google.
 
 The compiler binaries have been successfully built for:
@@ -180,7 +181,7 @@ CMake will also clean-up at the end of the build process the useless stuff built
 
 No libraries other than the C and C++ libraries are required to build and run the Saigo SDK on Linux, macOS and FreeBSD.
 
-Windows builds are statcically linked, not requiring any MinGW library.
+Windows builds are statically linked, not requiring any MinGW library.
 
 Special efforts have been made to make sure the NaCl GDB only requires the `libc`.
 For example a `mini-termcap` has been implemented and integrated to remove the dependency on `libncurses` and `libtinfo` on Unix-like systems.
@@ -206,9 +207,10 @@ The build of Binutils and GDB relies on autotools `configure` scripts and GNU Ma
 Replace the `8` job count with the amount of cores your computer provides.
 Rebuilding Clang requires a powerful computer, as compilation is large and slow.
 
-Building LLVM may require 8GB per link task, especially when building it with LTO enabled, so you may prefer to use `<RAM available in GB>/8` as job count.
+Building LLVM may require 8GB per link task, especially when building it with LTO enabled,
+so you may prefer to use `<RAM available in GB>/8` as linker job count you can set with the `-DLINK_PARALLEL_LEVEL=N` CMake option.
 
-The provided CMake script driving the compilation of all Saigo components will delete useless files after compilation and replace known duplicates with symbolinc links.
+The provided CMake script driving the compilation of all Saigo components deletes useless files after compilation and replace known duplicates with symbolinc links.
 
 One can clean the build (including the deletion of the `install/` directory) with:
 
@@ -257,7 +259,9 @@ USE_LTO=ON tools/release/build <targets>
 ```
 
 Beware that building using  LTO is much slower and can require crazy amount of RAM.
-To prevent the kernel to trigger the OOM killer and to preserve your precious uptime, the `build` helper selects the job count accordingly to both CPU core availables and memory available.
+To prevent the kernel to trigger the OOM killer and to preserve your precious uptime,
+the `build` helper set the linker job count accordingly to both CPU core availables and memory available.
+It works best when the Ninja build tool is used.
 
 The `build` task makes heavy usage of symbolic links to deduplicates file (see above).
 
@@ -280,13 +284,19 @@ tools/release/package \
   freebsd-amd64 freebsd-i686
 ```
 
-The packaged archives will be found in the `build/packages/saigosdk_version-<commit date>` directory, and the archives will be named `saigosdk-<target>_version-<commit date>.tar.xz`, along with a checksum file.
+The packaged archives will be found in the `build/packages/saigosdk_version-<commit date>` directory,
+and the archives will be named `saigosdk-<target>_version-<commit date>.tar.xz`,
+along with a checksum file for the packages.
 
-The `package` task will use `jdupes` or `rdfind` (if present) to deduplicate files even more using hard links before storing them in the tarball.
+The `package` task uses `jdupes` or `rdfind` (if present) to deduplicate files even more using hard links before storing them in the tarball.
 
 All symbolink links are turned into hardlinks in the Windows tarballs to both provide an efficient storage and make sure files are extracted as real files and not as broken links on Windows.
 
 The `package` helper can run on a different system than the one having run the `build` one.
+
+It's possible to sign the release using the `tools/release/sign` helper,
+which signs the packages checksum file using the signing key configured for the Git repository.
+
 
 ### Release multi-cleaning
 
@@ -312,9 +322,11 @@ Google Saigo Clang has not been updated since January of 2025.
 A patch is provided to support the GCC LTO Auto option.
 It is to build Saigo Clang using LTO, not to use LTO when building NaCl nexe executables with Saigo Clang.
 
-The Saigo toolchain also requires a special branch of GNU Binutils which hasn't been updated since November of 2014.
-Patches are provided to keep it buildable on modern systems and with modern compilers,
-and to make it buildable for more architectures and for more systems like Windows when building with MinGW, Linux on RISC-V, or macOS on Apple Silicon.
+The Saigo toolchain also requires special branches of GNU Binutils for various components.
+The main Binutils branch (providing `ar, `ranlib, and the `ld` BFD linker) hasn't been updated since November of 2014.
+Another Binutils branch is used to provide the `as` assembler for ARM which is almost as old but received its latest patch in March of 2022.
+Patches are provided to keep them buildable on modern systems and with modern compilers,
+and to make them buildable for more architectures and for more systems like Windows when building with MinGW, Linux on RISC-V, or macOS on Apple Silicon.
 
 The same happens with GDB that hasn't been updated by Google since January of 2014.
 Patches are provided to keep it buildable today, to make it buildable on more systems, and to reduce the build and run time dependencies.
