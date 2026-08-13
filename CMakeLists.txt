@@ -447,7 +447,6 @@ if (BUILD_BINUTILS)
 		add_dependencies(binutils-${binutilsArchName} binutils-${binutilsArchName}-binaries)
 		add_dependencies(binutils binutils-${binutilsArchName})
 
-
 		if ("${binutilsArchName}" STREQUAL "x86")
 			set(binutilsToolNames
 				"ar"
