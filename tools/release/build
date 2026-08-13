@@ -212,7 +212,7 @@ do
 			false
 		fi
 
-		find "${build_dir}/install" -type d -exec rmdir {} \; 2>/dev/null || true
+		find "${build_dir}/install" -depth -type d -exec rmdir {} \; 2>/dev/null || true
 		;;
 	esac
 done
