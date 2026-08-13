@@ -451,7 +451,6 @@ if (BUILD_BINUTILS)
 		if ("${binutilsArchName}" STREQUAL "x86")
 			set(binutilsToolNames
 				"ar"
-				"ld"
 				"nm"
 				"ranlib"
 				"strip"
@@ -463,13 +462,20 @@ if (BUILD_BINUTILS)
 				"${SAIGO_ARCH_NAMES}"
 			)
 
+			# Make sure those aliases for executables from binutils-x86
+			# never replace the executables from binutils-arm.
 			add_custom_target(binutils-${binutilsArchName}-x86-binaries)
 			add_dependencies(binutils-${binutilsArchName}-x86-binaries binutils-${binutilsArchName}-binaries)
 			add_custom_target(binutils-${binutilsArchName}-x86)
 			add_dependencies(binutils-${binutilsArchName}-x86 binutils-${binutilsArchName}-x86-binaries)
 
-			AddBinaryAliases(binutils-${binutilsArchName}-x86
+			set(binutilsX86OnlyToolNames
+				"ld"
 				"as"
+			)
+
+			AddBinaryAliases(binutils-${binutilsArchName}-x86
+				"${binutilsX86OnlyToolNames}"
 				"${SAIGO_SYSTEM_NAME}"
 				"${binutilsPrimaryArchName};i686"
 			)
