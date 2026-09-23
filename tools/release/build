@@ -167,19 +167,24 @@ do
 		cmake_args+=(-D'CMAKE_TOOLCHAIN_FILE'="${repo_dir}/cmake/${TOOLCHAIN}")
 	fi
 		
-	if [ -n "${GCC:-}" ]
-	then
-		cmake_args+=(-D'CMAKE_C_COMPILER'="${GCC}-gcc")
-		cmake_args+=(-D'CMAKE_CXX_COMPILER'="${GCC}-g++")
-	fi
-		
-	if [ -n "${CLANG:-}" ]
-	then
-		cmake_args+=(-D'CMAKE_C_COMPILER'='clang')
-		cmake_args+=(-D'CMAKE_CXX_COMPILER'='clang++')
-		cmake_args+=(-D'CMAKE_C_FLAGS'="-target ${CLANG}")
-		cmake_args+=(-D'CMAKE_CXX_FLAGS'="-target ${CLANG}")
-	fi
+	case "${COMPILER:-}" in
+		'gcc')
+			cmake_args+=(-D'CMAKE_ASM_COMPILER'="${TARGET}-gcc")
+			cmake_args+=(-D'CMAKE_C_COMPILER'="${TARGET}-gcc")
+			cmake_args+=(-D'CMAKE_CXX_COMPILER'="${TARGET}-g++")
+			;;
+		'clang')
+			cmake_args+=(-D'CMAKE_ASM_COMPILER'='clang')
+			cmake_args+=(-D'CMAKE_C_COMPILER'='clang')
+			cmake_args+=(-D'CMAKE_CXX_COMPILER'='clang++')
+			cmake_args+=(-D'CMAKE_ASM_COMPILER_TARGET'="${TARGET}")
+			cmake_args+=(-D'CMAKE_C_COMPILER_TARGET'="${TARGET}")
+			cmake_args+=(-D'CMAKE_CXX_COMPILER_TARGET'="${TARGET}")
+			cmake_args+=(-D'CMAKE_ASM_FLAGS'="-target ${TARGET}")
+			cmake_args+=(-D'CMAKE_C_FLAGS'="-target ${TARGET}")
+			cmake_args+=(-D'CMAKE_CXX_FLAGS'="-target ${TARGET}")
+			;;
+	esac
 
 	if [ -n "${MACOS:-}" ]
 	then
@@ -188,8 +193,8 @@ do
 
 	# Variables from target configuration.
 	unset TOOLCHAIN
-	unset GCC
-	unset CLANG
+	unset TARGET
+	unset COMPILER
 	unset MACOS
 
 	build_dir="${repo_dir}/build/${target_name}${NAME_SUFFIX}"
