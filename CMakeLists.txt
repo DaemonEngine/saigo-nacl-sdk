@@ -109,7 +109,7 @@ if (BUILD_CLANG)
 
 	set(ENV{CCACHE_PREFIX} "${PATH_ICECC}")
 
-	AddCompilerCmakeArgs(CLANG "C;CXX")
+	AddCompilerCmakeArgs(CLANG "ASM;C;CXX")
 
 	list(APPEND CLANG_ARGS ${EP_CMAKE_ARGS})
 

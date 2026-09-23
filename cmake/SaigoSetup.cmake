@@ -26,8 +26,11 @@ else()
 endif()
 
 if (NOT CLONE_SHARED_REPOSITORIES)
-	enable_language(C)
-	enable_language(CXX)
+	set(ENABLED_LANGUAGES "ASM;C;CXX")
+
+	foreach(lang IN ITEMS ${ENABLED_LANGUAGES})
+		enable_language("${lang}")
+	endforeach()
 
 	include(CheckCompilerFlag)
 	include(CheckLinkerFlag)
@@ -186,20 +189,16 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		list(APPEND EXE_LINKER_FLAGS "-static" "-static-libstdc++" "-static-libgcc")
 	endif()
 
-	foreach(flag IN ITEMS ${CMAKE_C_FLAGS})
-		list(APPEND EP_C_FLAGS "${flag}")
+	foreach(lang IN ITEMS ${ENABLED_LANGUAGES};LINKER_FLAGS)
+		foreach(flag IN ITEMS ${CMAKE_${lang}_FLAGS})
+			list(APPEND EP_${lang}_FLAGS "${flag}")
+		endforeach()
 	endforeach()
 
-	foreach(flag IN ITEMS ${CMAKE_CXX_FLAGS})
-		list(APPEND EP_CXX_FLAGS "${flag}")
+	foreach(lang IN ITEMS C;CXX)
+		list(APPEND EP_${lang}_FLAGS ${COMPILER_FLAGS})
 	endforeach()
 
-	foreach(flag IN ITEMS ${CMAKE_EXE_LINKER_FLAGS})
-		list(APPEND EP_EXE_LINKER_FLAGS "${flag}")
-	endforeach()
-
-	list(APPEND EP_C_FLAGS ${COMPILER_FLAGS})
-	list(APPEND EP_CXX_FLAGS ${COMPILER_FLAGS})
 	list(APPEND EP_EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS})
 
 	list(APPEND EP_CMAKE_ARGS
@@ -220,18 +219,30 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 		list(APPEND EP_CMAKE_ARGS "-DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}")
 	endif()
 
-	set(EP_C_COMPILER "${CMAKE_C_COMPILER}")
-	set(EP_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
+	foreach(lang IN ITEMS ${ENABLED_LANGUAGES})
+		set(EP_${lang}_COMPILER "${CMAKE_${lang}_COMPILER}")
+	endforeach()
+
+	set(CONFIGURE_ASM_VAR "AS")
+	set(CONFIGURE_C_VAR "CC")
+	set(CONFIGURE_CXX_VAR "CXX")
+
+	set(DEFAULT_ASM_COMPILER "cc")
+	set(DEFAULT_C_COMPILER "cc")
+	set(DEFAULT_CXX_COMPILER "c++")
 
 	if (NOT "${EP_COMPILER_LAUNCHER}" STREQUAL "")
-		AddToolConfigureEnv("CC_FOR_BUILD" "${EP_COMPILER_LAUNCHER} cc")
-		AddToolConfigureEnv("CC" "${EP_COMPILER_LAUNCHER} ${EP_C_COMPILER}")
-		AddToolConfigureEnv("CXX" "${EP_COMPILER_LAUNCHER} ${EP_CXX_COMPILER}")
+		set(CONFIGURE_COMPILER_LAUNCHER_PREFIX="${EP_COMPILER_LAUNCHER} ")
 	else()
-		AddToolConfigureEnv("CC_FOR_BUILD" "cc")
-		AddToolConfigureEnv("CC" "${EP_C_COMPILER}")
-		AddToolConfigureEnv("CXX" "${EP_CXX_COMPILER}")
+		set(CONFIGURE_COMPILER_LAUNCHER_PREFIX="")
 	endif()
+
+	foreach(lang IN ITEMS ${ENABLED_LANGUAGES})
+		AddToolConfigureEnv("${CONFIGURE_${lang}_VAR}_FOR_BUILD"
+			"${CONFIGURE_COMPILER_LAUNCHER_PREFIX}${DEFAULT_${lang}_COMPILER}")
+		AddToolConfigureEnv("${CONFIGURE_${lang}_VAR}"
+			"${CONFIGURE_COMPILER_LAUNCHER_PREFIX}${EP_${lang}_COMPILER}")
+	endforeach()
 
 	AddTripleToolConfigureEnv("AR" "ar")
 	AddTripleToolConfigureEnv("NM" "nm")
@@ -242,9 +253,10 @@ if (NOT CLONE_SHARED_REPOSITORIES)
 	AddToolConfigureEnv("STRIPPROG" "${TRIPLE_STRIP}")
 	AddToolConfigureEnv("MAKEINFO" "true")
 
-	ListToString("EP_C_FLAGS")
-	ListToString("EP_CXX_FLAGS")
-	ListToString("EP_EXE_LINKER_FLAGS")
+	foreach(lang IN ITEMS ${ENABLED_LANGUAGES};LINKER_FLAGS)
+		ListToString("EP_${lang}_FLAGS")
+	endforeach()
+
 	ListToString("LTO_FLAGS")
 
 	list(APPEND CONFIGURE_ARGS
