@@ -523,16 +523,27 @@ if (BUILD_BINUTILS)
 		set(binutilsDeleteTargetPrefix "${binutilsDeleteTargetPrefix_${binutilsArchName}}")
 
 		set(binutilsUselessFiles
-			"bin/${binutilsDeleteTargetPrefix}-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-c++filt${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-elfedit${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-gprof${CMAKE_EXECUTABLE_SUFFIX}"
+			# This is the same as ld, just there for -fuse-ld=* to not use the default
+			# linker but bfd is already the default and the only option so no one
+			# has any reason to set -fuse-ld=bfd to switch from bfd to bfd.
 			"bin/${binutilsDeleteTargetPrefix}-ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-objcopy${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-objdump${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-readelf${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-size${CMAKE_EXECUTABLE_SUFFIX}"
-			"bin/${binutilsDeleteTargetPrefix}-strings${CMAKE_EXECUTABLE_SUFFIX}"
+		)
+
+		if ("${binutilsArchName}" STREQUAL "arm")
+			list(APPEND binutilsUselessFiles
+				"bin/${binutilsDeleteTargetPrefix}-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-c++filt${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-elfedit${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-gprof${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-objcopy${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-objdump${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-readelf${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-size${CMAKE_EXECUTABLE_SUFFIX}"
+				"bin/${binutilsDeleteTargetPrefix}-strings${CMAKE_EXECUTABLE_SUFFIX}"
+			)
+		endif()
+
+		list(APPEND binutilsUselessFiles
 			"share/info/as.info"
 			"share/info/bfd.info"
 			"share/info/binutils.info"
