@@ -48,7 +48,7 @@ This project also ships with the compilers and debugger and some NaCl C/C++ head
 - [chromium.googlesource.com/native_client/nacl-llvm-project-v10](https://chromium.googlesource.com/native_client/nacl-llvm-project-v10) (Saigo NaCl Clang)
 - [chromium.googlesource.com/native_client/nacl-binutils](https://chromium.googlesource.com/native_client/nacl-binutils) (NaCl Binutils)
 - [chromium.googlesource.com/native_client/nacl-gdb](https://chromium.googlesource.com/native_client/nacl-gdb) (NaCl GDB)
-- [github.com/DaemonEngine/native_client](https://github.com/DaemonEngine/native_client) (NaCl headers)
+- [github.com/DaemonEngine/native_client](https://github.com/DaemonEngine/native_client) (NaCl header and assembler support files)
 
 Patches are provided (stored in the present repository in the [`patches/`](patches/) directory) which CMake automatically applies over source repositories before building the software.
 Those patches keep the tools buildable, improve cross-platform support (buildable for more systems and architectures), and reduce the build and runtime dependencies.
