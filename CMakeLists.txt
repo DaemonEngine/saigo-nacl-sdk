@@ -705,23 +705,37 @@ if (BUILD_NACL)
 endif()
 
 if (BUILD_NACL AND BUILD_NACL_INCLUDE)
-	set(src_include "${SOURCE_DIR_NACL}/src/include/nacl")
-	set(amd64_include "${CMAKE_INSTALL_PREFIX}/x86_64-nacl/include/nacl")
-	set(arm_include "${CMAKE_INSTALL_PREFIX}/arm-nacl/include/nacl")
+	set(src_lib "${SOURCE_DIR_NACL}/pnacl/support/clang_direct")
+	set(dst_lib "${CMAKE_INSTALL_PREFIX}/arm-nacl/lib")
 
-	set(include_file_list
-		nacl_exception.h
-		nacl_minidump.h
-		simd.h
+	set(src_include "${SOURCE_DIR_NACL}/src/include/nacl")
+	set(dst_include "${CMAKE_INSTALL_PREFIX}/x86_64-nacl/include/nacl")
+
+	set(lib_file_list
+		"nacl-arm-macros.s"
 	)
 
-	list(APPEND include_command ${CMAKE_COMMAND} -E make_directory "${amd64_include}")
+	set(include_file_list
+		"nacl_exception.h"
+		"nacl_minidump.h"
+		"simd.h"
+	)
 
-	foreach(include_file IN LISTS include_file_list)
+	set(include_command
+		${CMAKE_COMMAND} -E true
+	)
+
+	foreach(kind IN ITEMS lib include)
 		list(APPEND include_command
-			 && ${CMAKE_COMMAND} -E copy_if_different
-				"${src_include}/${include_file}" "${amd64_include}/${include_file}"
+			&& ${CMAKE_COMMAND} -E make_directory "${dst_${kind}}"
 		)
+
+		foreach(${kind}_file IN LISTS ${kind}_file_list)
+			list(APPEND include_command
+				&& ${CMAKE_COMMAND} -E copy_if_different
+					"${src_${kind}}/${${kind}_file}" "${dst_${kind}}/${${kind}_file}"
+			)
+		endforeach()
 	endforeach()
 
 	ExternalProject_Add(nacl-include
