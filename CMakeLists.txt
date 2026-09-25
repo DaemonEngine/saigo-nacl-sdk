@@ -390,12 +390,10 @@ if (BUILD_BINUTILS)
 	foreach(binutilsArchName IN LISTS binutilsArchNames)
 		string(TOUPPER "${binutilsArchName}" binutilsArchSlug)
 
-		if ("${binutilsArchName}" STREQUAL "x86")
-			set(binutilsPrimaryArchName "x86_64")
-		elseif ("${binutilsArchName}" STREQUAL "arm")
-			set(binutilsPrimaryArchName "arm")
-		endif()
+		set(binutilsArchName_x86 "x86_64")
+		set(binutilsArchName_arm "arm")
 
+		set(binutilsPrimaryArchName "${binutilsArchName_${binutilsArchName}}")
 		set(binutilsPrimaryTarget "${binutilsPrimaryArchName}-nacl")
 
 		if ("${binutilsArchName}" STREQUAL "x86")
@@ -519,11 +517,10 @@ if (BUILD_BINUTILS)
 			add_dependencies(binutils-${binutilsArchName}-aliases binutils-${binutilsArchName}-lib64-alias)
 		endif()
 
-		if ("${binutilsArchName}" STREQUAL "x86")
-			set(binutilsDeleteTargetPrefix "${SAIGO_SYSTEM_NAME}")
-		elseif ("${binutilsArchName}" STREQUAL "arm")
-			set(binutilsDeleteTargetPrefix "${binutilsPrimaryTarget}")
-		endif()
+		set(binutilsDeleteTargetPrefix_x86 "${SAIGO_SYSTEM_NAME}")
+		set(binutilsDeleteTargetPrefix_arm "${binutilsPrimaryTarget}")
+
+		set(binutilsDeleteTargetPrefix "${binutilsDeleteTargetPrefix_${binutilsArchName}}")
 
 		set(binutilsUselessFiles
 			"bin/${binutilsDeleteTargetPrefix}-addr2line${CMAKE_EXECUTABLE_SUFFIX}"
@@ -563,13 +560,13 @@ if (BUILD_BINUTILS)
 			"share/man/man1/${binutilsDeleteTargetPrefix}-strip.1"
 			"share/man/man1/${binutilsDeleteTargetPrefix}-windmc.1"
 			"share/man/man1/${binutilsDeleteTargetPrefix}-windres.1"
-			"${binutilsDeleteTargetPrefix}/bin/ar${CMAKE_EXECUTABLE_SUFFIX}"
-			"${binutilsDeleteTargetPrefix}/bin/ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
-			"${binutilsDeleteTargetPrefix}/bin/nm${CMAKE_EXECUTABLE_SUFFIX}"
-			"${binutilsDeleteTargetPrefix}/bin/objcopy${CMAKE_EXECUTABLE_SUFFIX}"
-			"${binutilsDeleteTargetPrefix}/bin/objdump${CMAKE_EXECUTABLE_SUFFIX}"
-			"${binutilsDeleteTargetPrefix}/bin/ranlib${CMAKE_EXECUTABLE_SUFFIX}"
-			"${binutilsDeleteTargetPrefix}/bin/strip${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/ar${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/ld.bfd${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/nm${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/objcopy${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/objdump${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/ranlib${CMAKE_EXECUTABLE_SUFFIX}"
+			"${binutilsPrimaryTarget}/bin/strip${CMAKE_EXECUTABLE_SUFFIX}"
 		)
 
 		DeleteUselessFiles(binutils-${binutilsArchName} "${binutilsUselessFiles}")
