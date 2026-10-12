@@ -94,7 +94,9 @@ AddGitProject("nacl"
 	"ae29840014b5c08c7733ee9257741d421723255a"
 )
 
-option(BUILD_BINUTILS "Build the binutils." ON)
+if (NOT CLONE_SHARED_REPOSITORIES)
+	option(BUILD_BINUTILS "Build the binutils." ON)
+endif()
 
 include(saigolibs-tarballs.cmake)
 
