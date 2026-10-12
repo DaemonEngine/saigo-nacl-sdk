@@ -94,9 +94,7 @@ AddGitProject("nacl"
 	"ae29840014b5c08c7733ee9257741d421723255a"
 )
 
-if (NOT CLONE_SHARED_REPOSITORIES)
-	option(BUILD_BINUTILS "Build the binutils." ON)
-endif()
+AddBuildTargetOption("binutils")
 
 include(saigolibs-tarballs.cmake)
 
@@ -361,8 +359,6 @@ if (BUILD_CLANG)
 endif()
 
 if (BUILD_BINUTILS)
-	add_custom_target(binutils ALL)
-
 	foreach(binutilsArchName IN ITEMS "x86" "arm")
 		add_dependencies(binutils binutils-${binutilsArchName})
 

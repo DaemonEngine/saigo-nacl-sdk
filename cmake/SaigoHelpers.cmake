@@ -24,14 +24,36 @@ macro(ListToString NAME)
 	list(JOIN ${NAME} " " ${NAME}_STRING)
 endmacro()
 
-macro(AddGitProject NAME DIR URL TAG)
+function(GetSlugFromTarget NAME SLUG_NAME)
 	string(TOUPPER "${NAME}" SLUG)
 	string(REPLACE "-" "_" SLUG "${SLUG}")
+	set("${SLUG_NAME}" "${SLUG}" PARENT_SCOPE)
+endfunction()
+
+function(AddBuildTargetOption NAME)
+	GetSlugFromTarget("${NAME}" "SLUG")
+
+	if (NOT CLONE_SHARED_REPOSITORIES)
+		option(BUILD_${SLUG} "Build the ${NAME}." ON)
+
+		if (BUILD_${SLUG})
+			if (NOT TARGET "${NAME}")
+				add_custom_target("${NAME}" ALL)
+			endif()
+		endif()
+	endif()
+endfunction()
+
+macro(AddGitProject NAME DIR URL TAG)
+	GetSlugFromTarget("${NAME}" "SLUG")
+
 	set(GIT_REPOSITORY_${SLUG} "${URL}" CACHE STRING "${NAME} git repository location.")
 	mark_as_advanced(GIT_REPOSITORY_${SLUG})
 
 	set(REPOSITORY_DIR_${SLUG} "${DIR}")
 	set(REPOSITORY_TAG_${SLUG} "${TAG}")
+
+	AddBuildTargetOption("${NAME}")
 
 	if (CLONE_SHARED_REPOSITORIES)
 		option(CLONE_${SLUG} "Clone the ${NAME} repository." ON)
@@ -71,12 +93,6 @@ macro(AddGitProject NAME DIR URL TAG)
 				INSTALL_COMMAND echo
 			)
 		endif()
-	else()
-		option(BUILD_${SLUG} "Build the ${NAME}." ON)
-
-		if (BUILD_${SLUG})
-			add_custom_target("${NAME}" ALL)
-		endif()
 	endif()
 
 	if (SHARED_REPOSITORIES_DIR)
@@ -100,20 +116,14 @@ macro(AddGitProject NAME DIR URL TAG)
 endmacro()
 
 macro(AddTarProject PARENT_NAME NAME SUBDIR URL)
-	string(TOUPPER "${PARENT_NAME}" PARENT_SLUG)
-	string(TOUPPER "${NAME}" SLUG)
-	set(TARGET_SLUG "${PARENT_SLUG}_${SLUG}")
+	GetSlugFromTarget("${PARENT_NAME}" "PARENT_SLUG")
+
+	AddBuildTargetOption("${PARENT_NAME}")
+
 	set(TARGET_NAME "${PARENT_NAME}-${NAME}")
+	GetSlugFromTarget("${TARGET_NAME}" "TARGET_SLUG")
 
-	if (NOT DEFINED BUILD_${PARENT_SLUG})
-		option(BUILD_${PARENT_SLUG} "Build the ${PARENT_NAME}." "${DEFAULT_BUILD}")
-	endif()
-
-	if (BUILD_${PARENT_SLUG})
-		if (NOT TARGET "${PARENT_NAME}")
-			add_custom_target("${PARENT_NAME}" ALL)
-		endif()
-	endif()
+	AddBuildTargetOption("${TARGET_NAME}")
 
 	set(DIR "${TARGET_NAME}")
 	set(SUBDIR_${TARGET_SLUG} "${SUBDIR}")
@@ -140,8 +150,6 @@ macro(AddTarProject PARENT_NAME NAME SUBDIR URL)
 				DOWNLOAD_EXTRACT_TIMESTAMP ON
 			)
 		endif()
-	else()
-		option(BUILD_${TARGET_SLUG} "Build the ${TARGET_NAME}." ON)
 	endif()
 
 	if (SHARED_REPOSITORIES_DIR)
