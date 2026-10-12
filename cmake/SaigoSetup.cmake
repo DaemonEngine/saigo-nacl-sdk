@@ -8,7 +8,7 @@ else()
 	set(DEFAULT_SHARED_REPOSITORIES "")
 endif()
 
-set(SHARED_REPOSITORIES_DIR "${DEFAULT_SHARED_REPOSITORIES_DIR}" CACHE PATH "Shared repositories dir (doesn't use any if empty).")
+set(SHARED_REPOSITORIES_DIR "" CACHE PATH "Shared repositories dir (doesn't use any if empty).")
 
 set(EXTERNAL_PROJECT_BASE ExternalProjects)
 set_directory_properties(PROPERTIES EP_BASE "${CMAKE_CURRENT_BINARY_DIR}/${EXTERNAL_PROJECT_BASE}")
