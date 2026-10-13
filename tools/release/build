@@ -23,7 +23,7 @@
 set -e -u -o pipefail
 
 export script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-export repo_dir="$(git rev-parse --show-toplevel)"
+export repo_dir="${script_dir}/../.."
 
 # Some LLVM linking tasks may eat up 8GB each.
 export nproc_count="$("${script_dir}/nproc")"
