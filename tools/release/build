@@ -102,7 +102,7 @@ do
 		echo "ERROR: Missing '${target_name}' configuration" >&2
 		echo "Known configurations:" >&2
 		basename -s .conf $(find "${script_dir}/conf" -name '*.conf') | sort >&2
-		exit 1
+		false
 	fi
 
 	cmake_args=(-S "${repo_dir}" -G'Unix Makefiles')

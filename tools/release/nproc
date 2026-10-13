@@ -27,7 +27,6 @@ default_job_count=4
 if [ -n "${JOBS:-}" ]
 then
 	echo "${JOBS}"
-	exit
 elif command -v 'nproc' >/dev/null
 then
 	nproc
