@@ -1,0 +1,102 @@
+From b066dfad83a5dc55fb35e6c17d412715bea1968b Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Sun, 25 Oct 2026 23:39:45 +0100
+Subject: llvm: set a default value for -opt-pass-limit on arm
+
+The -opt-pass-limit limits LLVM optimization passes without emitting
+the verbose BISECT: messages produced by -opt-bisect-limit.
+
+Default to 50000 as a limit for ARM/Thumb targets and leave other
+targets unlimited. Explicit -opt-pass-limit and -opt-bisect-limit
+options override the default; preserve verbose bisect output.
+
+Assumes LTO is not implemented: the pass gate is process-global, so
+multiple targets or modules in one process could interfere with each
+other's limits and pass counters.
+---
+ clang/lib/CodeGen/BackendUtil.cpp |  3 +++
+ llvm/include/llvm/IR/OptBisect.h  |  3 +++
+ llvm/lib/IR/OptBisect.cpp         | 17 +++++++++++++++++
+ 3 files changed, 23 insertions(+)
+
+diff --git a/clang/lib/CodeGen/BackendUtil.cpp b/clang/lib/CodeGen/BackendUtil.cpp
+index 1750719e1767..cd8cf06c4ed0 100644
+--- a/clang/lib/CodeGen/BackendUtil.cpp
++++ b/clang/lib/CodeGen/BackendUtil.cpp
+@@ -32,6 +32,7 @@
+ #include "llvm/IR/LegacyPassManager.h"
+ #include "llvm/IR/Module.h"
+ #include "llvm/IR/ModuleSummaryIndex.h"
++#include "llvm/IR/OptBisect.h"
+ #include "llvm/IR/PassManager.h"
+ #include "llvm/IR/Verifier.h"
+ #include "llvm/IRPrinter/IRPrintingPasses.h"
+@@ -1257,6 +1258,8 @@ void EmitAssemblyHelper::emitAssembly(BackendAction Action,
+ 
+   if (RequiresCodeGen && !TM)
+     return;
++  llvm::setDefaultOptPassLimit(TargetTriple.isARM() ||
++                               TargetTriple.isThumb());
+   if (TM)
+     TheModule->setDataLayout(TM->createDataLayout());
+ 
+diff --git a/llvm/include/llvm/IR/OptBisect.h b/llvm/include/llvm/IR/OptBisect.h
+index 87a959e051e6..1f5fdceff2b8 100644
+--- a/llvm/include/llvm/IR/OptBisect.h
++++ b/llvm/include/llvm/IR/OptBisect.h
+@@ -87,6 +87,9 @@ private:
+ /// need to coordinate their uses of OptBisect.
+ OptPassGate &getGlobalPassGate();
+ 
++/// Set the quiet default optimization limit for the current target.
++/// Explicit optimization limit options take precedence.
++void setDefaultOptPassLimit(bool IsARM);
+ } // end namespace llvm
+ 
+ #endif // LLVM_IR_OPTBISECT_H
+diff --git a/llvm/lib/IR/OptBisect.cpp b/llvm/lib/IR/OptBisect.cpp
+index 64ee004cbd71..cc5bdaaed617 100644
+--- a/llvm/lib/IR/OptBisect.cpp
++++ b/llvm/lib/IR/OptBisect.cpp
+@@ -20,14 +20,30 @@
+ 
+ using namespace llvm;
+ 
++static bool OptLimitSpecified = false;
++
+ static OptBisect &getOptBisector() {
+   static OptBisect OptBisector;
+   return OptBisector;
+ }
+ 
++void llvm::setDefaultOptPassLimit(bool IsARM) {
++  if (OptLimitSpecified)
++    return;
++
++  /* The number is arbitrary selected from experience building the
++  Unvanquished cgame, which gets faulty executables above the 53696 limit.
++  50000 is selected as an arbitrary high value with a fair margin before
++  the known experienced limit.
++  That workaround is enabled by default on ARM to make the Saigo SDK
++  able to build sufficiently-optimized nexe out of the box. */
++  getOptBisector().setLimit(IsARM ? 50000 : OptBisect::Disabled, false);
++}
++
+ static cl::opt<int> OptBisectLimit("opt-bisect-limit", cl::Hidden,
+                                    cl::init(OptBisect::Disabled), cl::Optional,
+                                    cl::cb<void, int>([](int Limit) {
++                                     OptLimitSpecified = true;
+                                      getOptBisector().setLimit(Limit, true);
+                                    }),
+                                    cl::desc("Maximum optimization to perform"));
+@@ -35,6 +51,7 @@ static cl::opt<int> OptBisectLimit("opt-bisect-limit", cl::Hidden,
+ static cl::opt<int> OptPassLimit("opt-pass-limit",
+     cl::init(OptBisect::Disabled), cl::Optional,
+     cl::cb<void, int>([](int Limit) {
++      OptLimitSpecified = true;
+       getOptBisector().setLimit(Limit, false);
+     }),
+     cl::desc("Maximum optimization to perform without bisection output"));
+-- 
+2.43.0
+

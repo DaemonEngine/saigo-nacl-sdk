@@ -1,0 +1,79 @@
+From cab676d175bd51a8915f1f55be07e3a0127bc613 Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Sun, 25 Oct 2026 22:43:17 +0100
+Subject: llvm: add quiet target-specific optimization pass limit
+
+Add -opt-pass-limit to limit LLVM optimization passes without emitting
+the verbose BISECT: messages produced by -opt-bisect-limit.
+
+This can be used to workaround optimization bugs by limiting the
+amount of optimization passes to avoid broken optimization
+combinations without entirely disabling optimizations.
+---
+ llvm/include/llvm/IR/OptBisect.h |  8 +++++---
+ llvm/lib/IR/OptBisect.cpp        | 11 +++++++++--
+ 2 files changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/llvm/include/llvm/IR/OptBisect.h b/llvm/include/llvm/IR/OptBisect.h
+index 507d415d5e11..87a959e051e6 100644
+--- a/llvm/include/llvm/IR/OptBisect.h
++++ b/llvm/include/llvm/IR/OptBisect.h
+@@ -67,11 +67,12 @@ public:
+   /// isEnabled() should return true before calling shouldRunPass().
+   bool isEnabled() const override { return BisectLimit != Disabled; }
+ 
+-  /// Set the new optimization limit and reset the counter. Passing
+-  /// OptBisect::Disabled disables the limiting.
+-  void setLimit(int Limit) {
++  /// Set the optimization limit and verbosity, then reset the counter.
++  /// Passing OptBisect::Disabled disables the limiting.
++  void setLimit(int Limit, bool Verbose = true) {
+     BisectLimit = Limit;
+     LastBisectNum = 0;
++    this->Verbose = Verbose;
+   }
+ 
+   static const int Disabled = std::numeric_limits<int>::max();
+@@ -79,6 +80,7 @@ public:
+ private:
+   int BisectLimit = Disabled;
+   int LastBisectNum = 0;
++  bool Verbose = true;
+ };
+ 
+ /// Singleton instance of the OptBisect class, so multiple pass managers don't
+diff --git a/llvm/lib/IR/OptBisect.cpp b/llvm/lib/IR/OptBisect.cpp
+index 559b19944536..64ee004cbd71 100644
+--- a/llvm/lib/IR/OptBisect.cpp
++++ b/llvm/lib/IR/OptBisect.cpp
+@@ -28,10 +28,17 @@ static OptBisect &getOptBisector() {
+ static cl::opt<int> OptBisectLimit("opt-bisect-limit", cl::Hidden,
+                                    cl::init(OptBisect::Disabled), cl::Optional,
+                                    cl::cb<void, int>([](int Limit) {
+-                                     getOptBisector().setLimit(Limit);
++                                     getOptBisector().setLimit(Limit, true);
+                                    }),
+                                    cl::desc("Maximum optimization to perform"));
+ 
++static cl::opt<int> OptPassLimit("opt-pass-limit",
++    cl::init(OptBisect::Disabled), cl::Optional,
++    cl::cb<void, int>([](int Limit) {
++      getOptBisector().setLimit(Limit, false);
++    }),
++    cl::desc("Maximum optimization to perform without bisection output"));
++
+ static cl::opt<bool> OptBisectVerbose(
+     "opt-bisect-verbose",
+     cl::desc("Show verbose output when opt-bisect-limit is set"), cl::Hidden,
+@@ -50,7 +57,7 @@ bool OptBisect::shouldRunPass(const StringRef PassName,
+ 
+   int CurBisectNum = ++LastBisectNum;
+   bool ShouldRun = (BisectLimit == -1 || CurBisectNum <= BisectLimit);
+-  if (OptBisectVerbose)
++  if (Verbose && OptBisectVerbose)
+     printPassMessage(PassName, CurBisectNum, IRDescription, ShouldRun);
+   return ShouldRun;
+ }
+-- 
+2.43.0
+
