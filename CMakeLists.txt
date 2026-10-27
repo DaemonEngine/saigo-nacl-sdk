@@ -42,6 +42,7 @@ AddGitProject("clang"
 	"https://chromium.googlesource.com/native_client/nacl-llvm-project-v10.git"
 	"9c7f0369cfdd591e580c5ccfc1f00fedee58029f"
 	"0001-cmake-accept-llvm-enable-lto-auto-option.patch"
+	"0002-llvm-arm-preserve-subtraction-in-nacl-address-expansion.patch"
 )
 
 AddGitProject("binutils-x86"

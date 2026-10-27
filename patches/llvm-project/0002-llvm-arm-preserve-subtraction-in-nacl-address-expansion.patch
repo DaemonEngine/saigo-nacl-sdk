@@ -1,0 +1,49 @@
+From 8d3843b13a0f30ff24d5ca45219a686b7660df2d Mon Sep 17 00:00:00 2001
+From: Thomas Debesse <dev@illwieckz.net>
+Date: Tue, 27 Oct 2026 09:04:41 +0100
+Subject: llvm/arm: preserve subtraction in NaCl address expansion
+
+Preserve the add/subtract operation encoded in the original addressing
+mode when expanding register-indexed addressing in getAddrInstr().
+
+Generate SUBrr or SUBrsi for subtraction-based offsets instead of
+unconditionally generating ADDrr or ADDrsi.
+
+The NaCl ARM instruction expander's getAddrInstr() always emitted
+addition when expanding register-indexed addressing, ignoring the
+add/subtract operation encoded in the original addressing mode.
+
+This caused subtraction-based offsets to be expanded incorrectly,
+resulting in invalid memory accesses and crashes during Unvanquished
+weapon configuration initialization. Basically, the forward loops was
+turned backward, iterating before the first element of the list.
+
+Preserve the original add/subtract operation when generating the
+address calculation, for both shifted and unshifted register offsets.
+
+Verified by running the game with unlimited optimization passes and
+all ARM optimization passes enabled.
+---
+ llvm/lib/Target/ARM/MCTargetDesc/ARMMCNaClExpander.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/llvm/lib/Target/ARM/MCTargetDesc/ARMMCNaClExpander.cpp b/llvm/lib/Target/ARM/MCTargetDesc/ARMMCNaClExpander.cpp
+index f256cf2d397c..98ab999f8778 100644
+--- a/llvm/lib/Target/ARM/MCTargetDesc/ARMMCNaClExpander.cpp
++++ b/llvm/lib/Target/ARM/MCTargetDesc/ARMMCNaClExpander.cpp
+@@ -285,7 +285,11 @@ static MCInst getAddrInstr(const MCInst &Inst, const MCInstrInfo &II,
+   // the asm printer does not care about the distinction and prints it correctly
+   // but the object file encoder asserts that the shift type of ADDrsi isn't
+   // no_shift. So create ADDrr when applicable.
+-  Add.setOpcode(ShOp == ARM_AM::no_shift ? ARM::ADDrr : ARM::ADDrsi);
++  bool IsSub = ARM_AM::getAM2Op(AM2Opc) == ARM_AM::sub;
++  if (ShOp == ARM_AM::no_shift)
++    Add.setOpcode(IsSub ? ARM::SUBrr : ARM::ADDrr);
++  else
++    Add.setOpcode(IsSub ? ARM::SUBrsi : ARM::ADDrsi);
+   Add.addOperand(MCOperand::createReg(Target));
+   Add.addOperand(Inst.getOperand(MemIdx));
+   Add.addOperand(Inst.getOperand(MemIdx + 1));
+-- 
+2.43.0
+
