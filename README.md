@@ -51,7 +51,11 @@ This project also ships with the compilers and debugger and some NaCl C/C++ head
 - [github.com/DaemonEngine/native_client](https://github.com/DaemonEngine/native_client) (NaCl header and assembler support files)
 
 Patches are provided (stored in the present repository in the [`patches/`](patches/) directory) which CMake automatically applies over source repositories before building the software.
-Those patches keep the tools buildable, improve cross-platform support (buildable for more systems and architectures), and reduce the build and runtime dependencies.
+Those patches make the tools work correctly, keep them buildable,
+improve cross-platform support (can be built for more systems and architectures),
+and reduce the build and runtime dependencies.
+
+Dæmon Saigo Clang fixes an ARM code generation bug that was present in Google's sources that could invert the sign of an iterator in some cases.
 
 The related project to rebuild the Native Client runtime (including the NaCl loader) can be found there:
 
